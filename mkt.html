@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>상품전략부문 KPI 종합 대시보드 (구글시트 실시간 연동)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    * { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <span class="px-2.5 py-1.5 bg-indigo-600 rounded-lg text-white font-bold text-sm tracking-wider shadow-sm">KPI DASHBOARD</span>
+        <div>
+          <h1 class="font-bold text-base sm:text-lg leading-tight text-slate-900">상품전략부문 KPI 통합 대시보드</h1>
+          <p class="text-xs text-slate-500">구글 스프레드시트 실시간 동기화</p>
+        </div>
+      </div>
+
+      <!-- 상단 컨트롤 툴바 -->
+      <div class="flex items-center space-x-3">
+        <!-- 채널 필터 토글 -->
+        <div class="inline-flex p-1 bg-slate-100 rounded-lg border border-slate-200 text-xs font-semibold">
+          <button onclick="setChannelFilter('total')" id="btn-chan-total" class="px-3 py-1.5 rounded-md bg-white text-indigo-600 shadow-sm transition">전체</button>
+          <button onclick="setChannelFilter('mall')" id="btn-chan-mall" class="px-3 py-1.5 rounded-md text-slate-500 hover:text-slate-800 transition">자사몰</button>
+          <button onclick="setChannelFilter('store')" id="btn-chan-store" class="px-3 py-1.5 rounded-md text-slate-500 hover:text-slate-800 transition">스마트스토어</button>
+        </div>
+
+        <!-- 기간 필터 -->
+        <select id="monthFilter" onchange="onFilterChange()" class="text-xs sm:text-sm bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+          <option value="all">전체 누계 (3~10월)</option>
+          <option value="2026-3">2026년 3월</option>
+          <option value="2026-4">2026년 4월</option>
+          <option value="2026-5">2026년 5월</option>
+          <option value="2026-6">2026년 6월</option>
+          <option value="2026-7">2026년 7월</option>
+          <option value="2026-8">2026년 8월</option>
+          <option value="2026-9">2026년 9월</option>
+          <option value="2026-10">2026년 10월</option>
+        </select>
+
+        <!-- 실시간 새로고침 버튼 -->
+        <button onclick="fetchLiveGoogleSheet(true)" id="btnRefresh" title="구글 시트 즉시 동기화" class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:text-indigo-600 rounded-lg border border-slate-200 hover:bg-slate-50 shadow-xs transition">
+          <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span class="hidden md:inline">시트 동기화</span>
+        </button>
+
+        <!-- 수동 입력 / 설정 모달 열기 -->
+        <button onclick="openSyncModal()" title="시트 설정 및 수동 붙여넣기" class="p-2 text-slate-500 hover:text-indigo-600 rounded-lg border border-slate-200 hover:bg-slate-50 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6">
+
+    <!-- 1. TOP SUMMARY: 4 CARDS -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- 1. 매출 요약 -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-indigo-600 uppercase tracking-wide flex items-center gap-1">
+            <span>1. 매출 요약</span>
+            <span id="badgeTargetChannel" class="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-normal">전체</span>
+          </span>
+          <span id="summaryRevRate" class="text-xs px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700">0%</span>
+        </div>
+        <div class="text-2xl font-black tracking-tight text-slate-900" id="summaryRevActual">0원</div>
+        <div class="text-xs text-slate-400 mt-1">목표: <span id="summaryRevTarget" class="text-slate-600 font-medium">0원</span></div>
+        <div class="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
+          <span>구매: <b id="summaryOrders" class="text-slate-700 font-bold">0건</b></span>
+          <span>AOV: <b id="summaryAov" class="text-slate-700 font-bold">0원</b></span>
+        </div>
+      </div>
+
+      <!-- 2. 구매 전환율 -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-rose-600 uppercase tracking-wide">2. 구매 전환율 (CVR)</span>
+          <span class="text-xs px-2 py-0.5 rounded-full font-bold bg-rose-50 text-rose-700">구매/유입</span>
+        </div>
+        <div class="text-2xl font-black tracking-tight text-rose-600" id="summaryCvrVal">0.00%</div>
+        <div class="text-xs text-slate-400 mt-1">공식: 구매건수 ÷ 유입(DAU 누계)</div>
+        <div class="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
+          <span>구매: <b id="summaryCvrOrders" class="text-slate-700 font-bold">0건</b></span>
+          <span>DAU누계: <b id="summaryCvrDau" class="text-slate-700 font-bold">0명</b></span>
+        </div>
+      </div>
+
+      <!-- 3. 유입자수 요약 -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-emerald-600 uppercase tracking-wide">3. 유입자수 요약</span>
+          <span id="summaryMauRate" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700">0%</span>
+        </div>
+        <div class="text-2xl font-black tracking-tight text-slate-900" id="summaryMauActual">0명</div>
+        <div class="text-xs text-slate-400 mt-1">목표 MAU: <span id="summaryMauTarget" class="text-slate-600 font-medium">0명</span></div>
+        <div class="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
+          <span>DAU 누계: <b id="summaryDauSum" class="text-slate-700 font-bold">0명</b></span>
+          <span>방문빈도: <b id="summaryFreq" class="text-slate-700 font-bold">0.00</b></span>
+        </div>
+      </div>
+
+      <!-- 4. 광고 효율 요약 -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-amber-600 uppercase tracking-wide">4. 광고 효율 요약</span>
+          <span id="summaryTotalRoasBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700">ROAS</span>
+        </div>
+        <div class="text-2xl font-black tracking-tight text-amber-600" id="summaryTotalRoas">0%</div>
+        <div class="text-xs text-slate-500 mt-1">집행 광고비: <span id="summaryTotalSpend" class="font-bold text-slate-800">0원</span></div>
+        <div class="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between truncate">
+          <span>전환매출: <b id="summaryConvSales" class="text-slate-700 font-bold">0원</b></span>
+          <span id="summaryRoasChannelLabel" class="text-slate-400 text-[10px]">전체합산</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 메인 탭 네비게이션 -->
+    <div class="border-b border-slate-200 flex items-center justify-between">
+      <nav class="flex space-x-2 sm:space-x-8 overflow-x-auto">
+        <button onclick="switchMainTab('group-revenue')" id="tab-group-revenue" class="main-tab-btn pb-3 px-2 border-b-2 font-bold text-sm border-indigo-600 text-indigo-600">
+          1. 매출 (매출분리 · 구매건수 · AOV · 달성률)
+        </button>
+        <button onclick="switchMainTab('group-traffic')" id="tab-group-traffic" class="main-tab-btn pb-3 px-2 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700">
+          2. 유입자수 (DAU · DAU 누적 · MAU · 빈도 세분화)
+        </button>
+        <button onclick="switchMainTab('group-ad')" id="tab-group-ad" class="main-tab-btn pb-3 px-2 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700">
+          3. 광고 효율 (자사몰 · 스토어 · 브검)
+        </button>
+      </nav>
+      <!-- 실시간 동기화 상태 뱃지 -->
+      <span id="syncStatusBadge" class="text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 hidden sm:inline-block">
+        ● 데이터 가동 중
+      </span>
+    </div>
+
+    <!-- 광고 효율 전용 서브탭 -->
+    <div id="adSubTabContainer" class="hidden flex items-center space-x-2 bg-slate-100 p-1.5 rounded-xl w-fit">
+      <button onclick="switchAdSubTab('ad-mall')" id="subtab-ad-mall" class="ad-sub-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-indigo-600 shadow-sm">
+        자사몰 광고 효율
+      </button>
+      <button onclick="switchAdSubTab('ad-store')" id="subtab-ad-store" class="ad-sub-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-700">
+        스마트스토어 광고 효율
+      </button>
+      <button onclick="switchAdSubTab('ad-brandsearch')" id="subtab-ad-brandsearch" class="ad-sub-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-700">
+        네이버 브랜드 검색 (노출량 · 클릭수 · CTR)
+      </button>
+    </div>
+
+    <!-- 2. 차트 영역 -->
+    <!-- (1) 매출 탭 전용: 2개 분리 차트 -->
+    <div id="chartContainerRevenue" class="space-y-4">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div class="pb-3 border-b border-slate-100 mb-3 flex justify-between items-center">
+          <div>
+            <h2 class="text-sm font-bold text-slate-800">주차별 채널 매출 (자사몰 매출 vs 스마트스토어 매출)</h2>
+            <p class="text-xs text-slate-400">단위: 원</p>
+          </div>
+          <span id="chartRevChannelBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-600">전체 채널</span>
+        </div>
+        <div class="relative h-64 w-full">
+          <canvas id="chartRevenueChannels"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div class="pb-3 border-b border-slate-100 mb-3 flex justify-between items-center">
+          <div>
+            <h2 class="text-sm font-bold text-slate-800">주차별 주문 건수 & 평균 객단가 (구매 건수와 AOV)</h2>
+            <p class="text-xs text-slate-400">좌측 축: 구매 건수(건) / 우측 축: AOV 객단가(원)</p>
+          </div>
+          <span id="chartOrdersChannelBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-600">전체 채널</span>
+        </div>
+        <div class="relative h-64 w-full">
+          <canvas id="chartRevenueOrdersAov"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- (2) 단일 차트 (유입자수, 광고효율 탭용) -->
+    <div id="chartContainerSingle" class="hidden bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+      <div class="pb-3 border-b border-slate-100 mb-3 flex justify-between items-center">
+        <div>
+          <h2 id="singleChartTitle" class="text-sm font-bold text-slate-800">트렌드 차트</h2>
+          <p id="singleChartDesc" class="text-xs text-slate-400">주간 상세 지표 추이</p>
+        </div>
+        <span id="singleChartChannelBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-sky-50 text-sky-600">전체</span>
+      </div>
+      <div class="relative h-72 w-full">
+        <canvas id="singleChartCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- 3. 상세 테이블 영역 -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h3 id="tableTitle" class="font-bold text-sm text-slate-900">상세 실적 테이블</h3>
+          <p id="tableDesc" class="text-xs text-slate-400 mt-0.5">선택된 채널 및 기간 전용 데이터</p>
+        </div>
+        <div class="flex items-center space-x-2 text-xs">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-emerald-700 bg-emerald-50 border border-emerald-200 font-medium">≥100% 달성</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-amber-700 bg-amber-50 border border-amber-200 font-medium">90~99% 근접</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-rose-700 bg-rose-50 border border-rose-200 font-medium">&lt;90% 미달</span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto max-h-[550px]">
+        <table class="w-full text-left text-xs whitespace-nowrap" id="primaryDataTable">
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 수동 붙여넣기 및 백업 모달 -->
+  <div id="syncModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b pb-3">
+        <h3 class="font-bold text-sm text-slate-900">구글 시트 연동 설정 & 백업 복사</h3>
+        <button onclick="closeSyncModal()" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold mb-1 text-slate-700">연동 구글 시트 URL</label>
+        <input type="url" id="sheetUrlInput" class="w-full text-xs p-2 rounded-lg border border-slate-300 bg-slate-50 font-mono" readonly>
+      </div>
+      <div class="border-t pt-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-semibold text-slate-700">시트 내용 붙여넣기 (방화벽/오프라인 환경용)</label>
+          <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSih5zhvkZEfWNBRSoEb9FfYI_xV7csr_HWNTJcqy0AheSzjEofC2ZDC4Qt0JbwnmbJtG-skwKXn_u6/pub?gid=996099765&single=true&output=csv" target="_blank" class="text-[11px] text-indigo-600 hover:underline">[구글 시트 CSV 직접 열기]</a>
+        </div>
+        <textarea id="csvDirectInput" rows="4" placeholder="구글 시트에서 전체 선택(Ctrl+A) 후 복사(Ctrl+C)한 텍스트를 여기에 붙여넣으셔도 1초 만에 화면에 완벽 반영됩니다." class="w-full text-xs p-2 rounded-lg border border-slate-300 font-mono"></textarea>
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="closeSyncModal()" class="px-3.5 py-1.5 rounded-lg border text-xs font-medium">닫기</button>
+        <button onclick="applyManualCsv()" class="px-3.5 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-900">붙여넣은 데이터 적용</button>
+        <button onclick="fetchLiveGoogleSheet(true)" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700">실시간 동기화</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="py-6 text-center text-xs text-slate-400 border-t border-slate-200 mt-12">
+    상품전략부문 KPI 종합 모니터링 시스템 &bull; 실시간 데이터베이스 연동
+  </footer>
+
+  <!-- 완전 무결 실시간 동기화 스크립트 -->
+  <script>
+    const LIVE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSih5zhvkZEfWNBRSoEb9FfYI_xV7csr_HWNTJcqy0AheSzjEofC2ZDC4Qt0JbwnmbJtG-skwKXn_u6/pub?gid=996099765&single=true&output=csv";
+
+    // 1. 기본 내장 데이터 (오프라인 / 로딩 전 즉시 렌더링용)
+    let monthsData = [
+      { key: '2026-3', label: '3월', targetRev: 30000000, targetRevMall: 30000000, targetRevStore: 0, actualRev: 23273000, actualRevMall: 23273000, actualRevStore: 0, targetMau: 10803, targetMauMall: 10803, targetMauStore: 0, actualMau: 9261, actualMauMall: 9261, actualMauStore: 0, dauSum: 10230, dauSumMall: 10230, dauSumStore: 0, freq: 0.91, freqMall: 0.91, freqStore: 0, targetOrders: 100, targetOrdersMall: 100, targetOrdersStore: 0, actualOrders: 75, actualOrdersMall: 75, actualOrdersStore: 0, targetAov: 300000, targetAovMall: 300000, targetAovStore: 0, actualAov: 310307, actualAovMall: 310307, actualAovStore: 0 },
+      { key: '2026-4', label: '4월', targetRev: 41666666, targetRevMall: 41666666, targetRevStore: 0, actualRev: 24957000, actualRevMall: 24957000, actualRevStore: 0, targetMau: 22222, targetMauMall: 22222, targetMauStore: 0, actualMau: 12016, actualMauMall: 12016, actualMauStore: 0, dauSum: 14078, dauSumMall: 14078, dauSumStore: 0, freq: 0.85, freqMall: 0.85, freqStore: 0, targetOrders: 167, targetOrdersMall: 167, targetOrdersStore: 0, actualOrders: 81, actualOrdersMall: 81, actualOrdersStore: 0, targetAov: 250000, targetAovMall: 250000, targetAovStore: 0, actualAov: 308111, actualAovMall: 308111, actualAovStore: 0 },
+      { key: '2026-5', label: '5월', targetRev: 33961020, targetRevMall: 33961020, targetRevStore: 0, actualRev: 30575000, actualRevMall: 30575000, actualRevStore: 0, targetMau: 20571, targetMauMall: 20571, targetMauStore: 0, actualMau: 19136, actualMauMall: 19136, actualMauStore: 0, dauSum: 22825, dauSumMall: 22825, dauSumStore: 0, freq: 0.84, freqMall: 0.84, freqStore: 0, targetOrders: 113, targetOrdersMall: 113, targetOrdersStore: 0, actualOrders: 102, actualOrdersMall: 102, actualOrdersStore: 0, targetAov: 250000, targetAovMall: 250000, targetAovStore: 0, actualAov: 299755, actualAovMall: 299755, actualAovStore: 0 },
+      { key: '2026-6', label: '6월', targetRev: 51520587, targetRevMall: 36520587, targetRevStore: 15000000, actualRev: 52154000, actualRevMall: 39182000, actualRevStore: 12972000, targetMau: 22094, targetMauMall: 22094, targetMauStore: 10853, actualMau: 26606, actualMauMall: 15753, actualMauStore: 10853, dauSum: 29145, dauSumMall: 18292, dauSumStore: 10853, freq: 0.91, freqMall: 0.86, freqStore: 1.00, targetOrders: 172, targetOrdersMall: 122, targetOrdersStore: 50, actualOrders: 170, actualOrdersMall: 125, actualOrdersStore: 45, targetAov: 300000, targetAovMall: 300000, targetAovStore: 300000, actualAov: 306788, actualAovMall: 313456, actualAovStore: 288267 },
+      { key: '2026-7', label: '7월', targetRev: 65720585, targetRevMall: 40720585, targetRevStore: 25000000, actualRev: 33588000, actualRevMall: 11548000, actualRevStore: 22040000, targetMau: 24635, targetMauMall: 24635, targetMauStore: 14105, actualMau: 29527, actualMauMall: 15422, actualMauStore: 14105, dauSum: 37734, dauSumMall: 19930, dauSumStore: 17804, freq: 0.78, freqMall: 0.77, freqStore: 0.79, targetOrders: 220, targetOrdersMall: 135, targetOrdersStore: 85, actualOrders: 122, actualOrdersMall: 41, actualOrdersStore: 81, targetAov: 300000, targetAovMall: 300000, targetAovStore: 300000, actualAov: 275311, actualAovMall: 281659, actualAovStore: 272099 },
+      { key: '2026-8', label: '8월', targetRev: 44407000, targetRevMall: 20093000, targetRevStore: 24314000, actualRev: 57658500, actualRevMall: 39017000, actualRevStore: 18641500, targetMau: 27467, targetMauMall: 27467, targetMauStore: 12317, actualMau: 35292, actualMauMall: 22975, actualMauStore: 12317, dauSum: 42641, dauSumMall: 26293, dauSumStore: 16348, freq: 0.83, freqMall: 0.87, freqStore: 0.75, targetOrders: 154, targetOrdersMall: 66, targetOrdersStore: 88, actualOrders: 189, actualOrdersMall: 120, actualOrdersStore: 69, targetAov: 300000, targetAovMall: 300000, targetAovStore: 300000, actualAov: 305071, actualAovMall: 325142, actualAovStore: 270167 },
+      { key: '2026-9', label: '9월', targetRev: 54827000, targetRevMall: 20093000, targetRevStore: 34734000, actualRev: 59221960, actualRevMall: 22598000, actualRevStore: 36623960, targetMau: 30626, targetMauMall: 30626, targetMauStore: 14337, actualMau: 28772, actualMauMall: 14435, actualMauStore: 14337, dauSum: 34227, dauSumMall: 16548, dauSumStore: 17679, freq: 0.84, freqMall: 0.87, freqStore: 0.81, targetOrders: 191, targetOrdersMall: 66, targetOrdersStore: 125, actualOrders: 187, actualOrdersMall: 72, actualOrdersStore: 115, targetAov: 300000, targetAovMall: 300000, targetAovStore: 300000, actualAov: 316695, actualAovMall: 313861, actualAovStore: 318469 },
+      { key: '2026-10', label: '10월', targetRev: 61283000, targetRevMall: 18937000, targetRevStore: 42346000, actualRev: 29502200, actualRevMall: 11023000, actualRevStore: 18479200, targetMau: 34148, targetMauMall: 34148, targetMauStore: 6779, actualMau: 16601, actualMauMall: 9822, actualMauStore: 6779, dauSum: 19821, dauSumMall: 11190, dauSumStore: 8631, freq: 0.84, freqMall: 0.88, freqStore: 0.79, targetOrders: 239, targetOrdersMall: 69, targetOrdersStore: 170, actualOrders: 107, actualOrdersMall: 40, actualOrdersStore: 67, targetAov: 300000, targetAovMall: 300000, targetAovStore: 300000, actualAov: 275721, actualAovMall: 275575, actualAovStore: 275809 }
+    ];
+
+    let weeks = [
+      { month: '2026-3', week: '3/1', revTotal: 5847000, revMall: 5847000, revStore: 0, targetRevTotal: 6000000, targetRevMall: 6000000, targetRevStore: 0, ordersTotal: 18, ordersMall: 18, ordersStore: 0, aovTotal: 324833, aovMall: 324833, aovStore: 0, dauTotal: 2211, dauMall: 2211, dauStore: 0, dauCumTotal: 2211, dauCumMall: 2211, dauCumStore: 0, adMall: { spend: 638033, impr: 50551, click: 2310, ctr: 4.6, cvr: 0.6, cpa: 64519, convSales: 894000, roas: 140.1 }, adStore: null, bs: { impr: 6112, click: 1653, ctr: 27.0 } },
+      { month: '2026-3', week: '3/8', revTotal: 5836000, revMall: 5836000, revStore: 0, targetRevTotal: 6000000, targetRevMall: 6000000, targetRevStore: 0, ordersTotal: 20, ordersMall: 20, ordersStore: 0, aovTotal: 291800, aovMall: 291800, aovStore: 0, dauTotal: 2375, dauMall: 2375, dauStore: 0, dauCumTotal: 4586, dauCumMall: 4586, dauCumStore: 0, adMall: { spend: 809688, impr: 55477, click: 2585, ctr: 4.7, cvr: 0.5, cpa: 57835, convSales: 1351000, roas: 166.9 }, adStore: null, bs: { impr: 6421, click: 1740, ctr: 27.1 } },
+      { month: '2026-3', week: '3/15', revTotal: 3830000, revMall: 3830000, revStore: 0, targetRevTotal: 6000000, targetRevMall: 6000000, targetRevStore: 0, ordersTotal: 14, ordersMall: 14, ordersStore: 0, aovTotal: 273571, aovMall: 273571, aovStore: 0, dauTotal: 2251, dauMall: 2251, dauStore: 0, dauCumTotal: 6837, dauCumMall: 6837, dauCumStore: 0, adMall: { spend: 612293, impr: 55363, click: 2437, ctr: 4.4, cvr: 0.3, cpa: 87470, convSales: 476000, roas: 77.7 }, adStore: null, bs: { impr: 6269, click: 1718, ctr: 27.4 } },
+      { month: '2026-3', week: '3/22', revTotal: 4333000, revMall: 4333000, revStore: 0, targetRevTotal: 6000000, targetRevMall: 6000000, targetRevStore: 0, ordersTotal: 12, ordersMall: 12, ordersStore: 0, aovTotal: 361083, aovMall: 361083, aovStore: 0, dauTotal: 2310, dauMall: 2310, dauStore: 0, dauCumTotal: 9147, dauCumMall: 9147, dauCumStore: 0, adMall: { spend: 565268, impr: 54988, click: 2391, ctr: 4.3, cvr: 0.5, cpa: 51388, convSales: 1221000, roas: 216.0 }, adStore: null, bs: { impr: 5862, click: 1696, ctr: 28.9 } },
+      { month: '2026-3', week: '3/29', revTotal: 7255174, revMall: 7255174, revStore: 0, targetRevTotal: 6000000, targetRevMall: 6000000, targetRevStore: 0, ordersTotal: 22, ordersMall: 22, ordersStore: 0, aovTotal: 329781, aovMall: 329781, aovStore: 0, dauTotal: 1997, dauMall: 1997, dauStore: 0, dauCumTotal: 11144, dauCumMall: 11144, dauCumStore: 0, adMall: { spend: 442767, impr: 39088, click: 2223, ctr: 5.7, cvr: 0.4, cpa: 49196, convSales: 1016000, roas: 229.5 }, adStore: null, bs: { impr: 5777, click: 1690, ctr: 29.3 } },
+      { month: '2026-4', week: '4/5', revTotal: 1666900, revMall: 1666900, revStore: 0, targetRevTotal: 10416666, targetRevMall: 10416666, targetRevStore: 0, ordersTotal: 5, ordersMall: 5, ordersStore: 0, aovTotal: 333380, aovMall: 333380, aovStore: 0, dauTotal: 1568, dauMall: 1568, dauStore: 0, dauCumTotal: 1568, dauCumMall: 1568, dauCumStore: 0, adMall: { spend: 304359, impr: 35648, click: 2037, ctr: 5.7, cvr: 0.2, cpa: 76090, convSales: 723000, roas: 237.5 }, adStore: null, bs: { impr: 5444, click: 1559, ctr: 28.6 } },
+      { month: '2026-4', week: '4/12', revTotal: 6805000, revMall: 6805000, revStore: 0, targetRevTotal: 10416666, targetRevMall: 10416666, targetRevStore: 0, ordersTotal: 24, ordersMall: 24, ordersStore: 0, aovTotal: 283542, aovMall: 283542, aovStore: 0, dauTotal: 4117, dauMall: 4117, dauStore: 0, dauCumTotal: 5685, dauCumMall: 5685, dauCumStore: 0, adMall: { spend: 1495455, impr: 117281, click: 4758, ctr: 4.1, cvr: 0.3, cpa: 124621, convSales: 3771000, roas: 252.2 }, adStore: null, bs: { impr: 5094, click: 1555, ctr: 30.5 } },
+      { month: '2026-4', week: '4/19', revTotal: 7410000, revMall: 7410000, revStore: 0, targetRevTotal: 10416666, targetRevMall: 10416666, targetRevStore: 0, ordersTotal: 26, ordersMall: 26, ordersStore: 0, aovTotal: 285000, aovMall: 285000, aovStore: 0, dauTotal: 4356, dauMall: 4356, dauStore: 0, dauCumTotal: 10041, dauCumMall: 10041, dauCumStore: 0, adMall: { spend: 1753765, impr: 113878, click: 4595, ctr: 4.0, cvr: 0.3, cpa: 116918, convSales: 4178000, roas: 238.0 }, adStore: null, bs: { impr: 5644, click: 1712, ctr: 30.3 } },
+      { month: '2026-4', week: '4/26', revTotal: 5595600, revMall: 5595600, revStore: 0, targetRevTotal: 10416666, targetRevMall: 10416666, targetRevStore: 0, ordersTotal: 18, ordersMall: 18, ordersStore: 0, aovTotal: 310867, aovMall: 310867, aovStore: 0, dauTotal: 4706, dauMall: 4706, dauStore: 0, dauCumTotal: 14747, dauCumMall: 14747, dauCumStore: 0, adMall: { spend: 712881, impr: 93473, click: 1943, ctr: 2.1, cvr: 0.05, cpa: 712881, convSales: 1485000, roas: 208.3 }, adStore: null, bs: { impr: 6322, click: 1541, ctr: 24.4 } },
+      { month: '2026-5', week: '5/3', revTotal: 9874500, revMall: 9874500, revStore: 0, targetRevTotal: 6792204, targetRevMall: 6792204, targetRevStore: 0, ordersTotal: 31, ordersMall: 31, ordersStore: 0, aovTotal: 318532, aovMall: 318532, aovStore: 0, dauTotal: 6999, dauMall: 6999, dauStore: 0, dauCumTotal: 6999, dauCumMall: 6999, dauCumStore: 0, adMall: { spend: 2938879, impr: 367156, click: 7461, ctr: 2.0, cvr: 0.24, cpa: 163271, convSales: 7105800, roas: 241.8 }, adStore: null, bs: { impr: 5459, click: 1662, ctr: 30.4 } },
+      { month: '2026-5', week: '5/10', revTotal: 8916600, revMall: 8916600, revStore: 0, targetRevTotal: 6792204, targetRevMall: 6792204, targetRevStore: 0, ordersTotal: 31, ordersMall: 31, ordersStore: 0, aovTotal: 287632, aovMall: 287632, aovStore: 0, dauTotal: 3945, dauMall: 3945, dauStore: 0, dauCumTotal: 10944, dauCumMall: 10944, dauCumStore: 0, adMall: { spend: 1662397, impr: 316354, click: 4541, ctr: 1.4, cvr: 0.31, cpa: 118743, convSales: 4046000, roas: 243.38 }, adStore: null, bs: { impr: 5286, click: 1665, ctr: 31.5 } },
+      { month: '2026-5', week: '5/17', revTotal: 5529000, revMall: 5529000, revStore: 0, targetRevTotal: 6792204, targetRevMall: 6792204, targetRevStore: 0, ordersTotal: 20, ordersMall: 20, ordersStore: 0, aovTotal: 276450, aovMall: 276450, aovStore: 0, dauTotal: 4729, dauMall: 4729, dauStore: 0, dauCumTotal: 15673, dauCumMall: 15673, dauCumStore: 0, adMall: { spend: 1333646, impr: 319500, click: 5204, ctr: 1.6, cvr: 0.15, cpa: 166706, convSales: 2185000, roas: 163.84 }, adStore: null, bs: { impr: 5364, click: 1730, ctr: 32.3 } },
+      { month: '2026-5', week: '5/24', revTotal: 6481000, revMall: 6481000, revStore: 0, targetRevTotal: 6792204, targetRevMall: 6792204, targetRevStore: 0, ordersTotal: 23, ordersMall: 23, ordersStore: 0, aovTotal: 281783, aovMall: 281783, aovStore: 0, dauTotal: 5783, dauMall: 5783, dauStore: 0, dauCumTotal: 21456, dauCumMall: 21456, dauCumStore: 0, adMall: { spend: 1428021, impr: 245410, click: 6547, ctr: 2.7, cvr: 0.23, cpa: 95201, convSales: 4725000, roas: 330.88 }, adStore: null, bs: { impr: 5435, click: 1754, ctr: 32.3 } },
+      { month: '2026-5', week: '5/31', revTotal: 7595000, revMall: 7595000, revStore: 0, targetRevTotal: 6792204, targetRevMall: 6792204, targetRevStore: 0, ordersTotal: 24, ordersMall: 24, ordersStore: 0, aovTotal: 316458, aovMall: 316458, aovStore: 0, dauTotal: 3465, dauMall: 3465, dauStore: 0, dauCumTotal: 24921, dauCumMall: 24921, dauCumStore: 0, adMall: { spend: 964984, impr: 252189, click: 3526, ctr: 1.4, cvr: 0.26, cpa: 107220, convSales: 2905000, roas: 301.04 }, adStore: null, bs: { impr: 5328, click: 1794, ctr: 33.7 } },
+      { month: '2026-6', week: '6/7', revTotal: 14202000, revMall: 12970000, revStore: 1232000, targetRevTotal: 12880146, targetRevMall: 9130146, targetRevStore: 3750000, ordersTotal: 50, ordersMall: 42, ordersStore: 8, aovTotal: 284040, aovMall: 308810, aovStore: 154000, dauTotal: 4325, dauMall: 3878, dauStore: 447, dauCumTotal: 4325, dauCumMall: 3878, dauCumStore: 447, adMall: { spend: 837221, impr: 142286, click: 3566, ctr: 2.5, cvr: 0.45, cpa: 52326, convSales: 4930000, roas: 588.85 }, adStore: { spend: 0, impr: 0, click: 0, ctr: 0, cvr: 0, cpa: 0, convSales: 0, roas: 0 }, bs: { impr: 5298, click: 1782, ctr: 33.6 } },
+      { month: '2026-6', week: '6/14', revTotal: 11111000, revMall: 9799000, revStore: 1312000, targetRevTotal: 12880146, targetRevMall: 9130146, targetRevStore: 3750000, ordersTotal: 35, ordersMall: 31, ordersStore: 4, aovTotal: 317457, aovMall: 316097, aovStore: 328000, dauTotal: 8983, dauMall: 5271, dauStore: 3712, dauCumTotal: 13308, dauCumMall: 9149, dauCumStore: 4159, adMall: { spend: 1935741, impr: 347711, click: 5984, ctr: 1.7, cvr: 0.30, cpa: 107541, convSales: 5404000, roas: 279.17 }, adStore: { spend: 1267857, impr: 948059, click: 3145, ctr: 0.33, cvr: 0.33, cpa: 154960, convSales: 2580000, roas: 185 }, bs: { impr: 5047, click: 1676, ctr: 33.2 } },
+      { month: '2026-6', week: '6/21', revTotal: 14914000, revMall: 7783000, revStore: 7131000, targetRevTotal: 12880146, targetRevMall: 9130146, targetRevStore: 3750000, ordersTotal: 48, ordersMall: 25, ordersStore: 23, aovTotal: 310708, aovMall: 311320, aovStore: 310043, dauTotal: 9258, dauMall: 4353, dauStore: 4905, dauCumTotal: 22566, dauCumMall: 13502, dauCumStore: 9064, adMall: { spend: 2064263, impr: 437676, click: 4384, ctr: 1.0, cvr: 0.34, cpa: 137618, convSales: 5025000, roas: 243.43 }, adStore: { spend: 1865016, impr: 853611, click: 3722, ctr: 0.44, cvr: 0.44, cpa: 75982, convSales: 8162000, roas: 438 }, bs: { impr: 5079, click: 1665, ctr: 32.8 } },
+      { month: '2026-6', week: '6/28', revTotal: 8232000, revMall: 4087000, revStore: 4145000, targetRevTotal: 12880146, targetRevMall: 9130146, targetRevStore: 3750000, ordersTotal: 22, ordersMall: 13, ordersStore: 9, aovTotal: 374182, aovMall: 314385, aovStore: 460556, dauTotal: 6970, dauMall: 3991, dauStore: 2979, dauCumTotal: 29536, dauCumMall: 17493, dauCumStore: 12043, adMall: { spend: 1707058, impr: 561847, click: 3509, ctr: 0.6, cvr: 0.26, cpa: 189673, convSales: 2999000, roas: 175.68 }, adStore: { spend: 595612, impr: 549914, click: 1556, ctr: 0.28, cvr: 0.28, cpa: 54598, convSales: 3652000, roas: 613 }, bs: { impr: 4988, click: 1515, ctr: 30.4 } },
+      { month: '2026-7', week: '7/5', revTotal: 8513000, revMall: 2698000, revStore: 5815000, targetRevTotal: 16430146, targetRevMall: 10180146, targetRevStore: 6250000, ordersTotal: 28, ordersMall: 9, ordersStore: 19, aovTotal: 304036, aovMall: 299778, aovStore: 306053, dauTotal: 8388, dauMall: 4805, dauStore: 3583, dauCumTotal: 8388, dauCumMall: 4805, dauCumStore: 3583, adMall: { spend: 1816523, impr: 581353, click: 3784, ctr: 0.7, cvr: 0.11, cpa: 454131, convSales: 899000, roas: 49.49 }, adStore: { spend: 844425, impr: 571904, click: 2294, ctr: 0.40, cvr: 0.78, cpa: 46912, convSales: 5164000, roas: 612 }, bs: { impr: 5876, click: 1718, ctr: 29.2 } },
+      { month: '2026-7', week: '7/12', revTotal: 7132000, revMall: 4062000, revStore: 3070000, targetRevTotal: 16430146, targetRevMall: 10180146, targetRevStore: 6250000, ordersTotal: 29, ordersMall: 14, ordersStore: 15, aovTotal: 245931, aovMall: 290143, aovStore: 204667, dauTotal: 9764, dauMall: 5408, dauStore: 4356, dauCumTotal: 18152, dauCumMall: 10213, dauCumStore: 7939, adMall: { spend: 1691434, impr: 1023321, click: 3010, ctr: 0.3, cvr: 0.20, cpa: 270833, convSales: 1625000, roas: 96.07 }, adStore: { spend: 1502098, impr: 591895, click: 3614, ctr: 0.61, cvr: 0.22, cpa: 187762, convSales: 1803000, roas: 120 }, bs: { impr: 5532, click: 1629, ctr: 29.4 } },
+      { month: '2026-7', week: '7/19', revTotal: 8113000, revMall: 2592000, revStore: 5521000, targetRevTotal: 16430146, targetRevMall: 10180146, targetRevStore: 6250000, ordersTotal: 29, ordersMall: 9, ordersStore: 20, aovTotal: 279759, aovMall: 288000, aovStore: 276050, dauTotal: 9562, dauMall: 4921, dauStore: 4641, dauCumTotal: 27714, dauCumMall: 15134, dauCumStore: 12580, adMall: { spend: 1184553, impr: 838843, click: 2174, ctr: 0.3, cvr: 0.23, cpa: 236911, convSales: 1461000, roas: 123.34 }, adStore: { spend: 1541721, impr: 720970, click: 5152, ctr: 0.71, cvr: 0.39, cpa: 77086, convSales: 5395500, roas: 350 }, bs: { impr: 5902, click: 1718, ctr: 29.1 } },
+      { month: '2026-7', week: '7/26', revTotal: 8654000, revMall: 2553000, revStore: 6101000, targetRevTotal: 16430146, targetRevMall: 10180146, targetRevStore: 6250000, ordersTotal: 29, ordersMall: 9, ordersStore: 20, aovTotal: 298414, aovMall: 283667, aovStore: 305050, dauTotal: 10963, dauMall: 6549, dauStore: 4414, dauCumTotal: 38677, dauCumMall: 21683, dauCumStore: 16994, adMall: { spend: 1044725, impr: 496798, click: 1552, ctr: 0.3, cvr: 0.39, cpa: 174121, convSales: 1813000, roas: 173.54 }, adStore: { spend: 1735342, impr: 842006, click: 3304, ctr: 0.39, cvr: 0.67, cpa: 78879, convSales: 6309000, roas: 364 }, bs: { impr: 5935, click: 1768, ctr: 29.8 } },
+      { month: '2026-8', week: '8/2', revTotal: 10401000, revMall: 6258000, revStore: 4143000, targetRevTotal: 8881400, targetRevMall: 4018600, targetRevStore: 4862800, ordersTotal: 34, ordersMall: 19, ordersStore: 15, aovTotal: 305912, aovMall: 329368, aovStore: 276200, dauTotal: 12882, dauMall: 9038, dauStore: 3844, dauCumTotal: 12882, dauCumMall: 9038, dauCumStore: 3844, adMall: { spend: 1244629, impr: 87388, click: 1869, ctr: 2.1, cvr: 0.59, cpa: 113148, convSales: 3584000, roas: 287.96 }, adStore: { spend: 1529240, impr: 851877, click: 1992, ctr: 0.23, cvr: 0.65, cpa: 117634, convSales: 3863000, roas: 253 }, bs: { impr: 6252, click: 1863, ctr: 29.8 } },
+      { month: '2026-8', week: '8/9', revTotal: 13513000, revMall: 9042000, revStore: 4471000, targetRevTotal: 8881400, targetRevMall: 4018600, targetRevStore: 4862800, ordersTotal: 41, ordersMall: 28, ordersStore: 13, aovTotal: 329585, aovMall: 322929, aovStore: 343923, dauTotal: 8741, dauMall: 4319, dauStore: 4422, dauCumTotal: 21623, dauCumMall: 13357, dauCumStore: 8266, adMall: { spend: 1159728, impr: 99994, click: 1786, ctr: 1.8, cvr: 0.78, cpa: 82838, convSales: 4690000, roas: 404.41 }, adStore: { spend: 2015625, impr: 1287287, click: 3338, ctr: 0.26, cvr: 0.42, cpa: 143973, convSales: 4095000, roas: 203 }, bs: { impr: 5863, click: 1887, ctr: 32.2 } },
+      { month: '2026-8', week: '8/16', revTotal: 14210000, revMall: 10646000, revStore: 3564000, targetRevTotal: 8881400, targetRevMall: 4018600, targetRevStore: 4862800, ordersTotal: 50, ordersMall: 33, ordersStore: 17, aovTotal: 284200, aovMall: 322606, aovStore: 209647, dauTotal: 8220, dauMall: 4736, dauStore: 3484, dauCumTotal: 29843, dauCumMall: 18093, dauCumStore: 11750, adMall: { spend: 1084647, impr: 94782, click: 2023, ctr: 2.1, cvr: 0.59, cpa: 90387, convSales: 3556000, roas: 327.85 }, adStore: { spend: 1776677, impr: 937615, click: 2365, ctr: 0.25, cvr: 0.59, cpa: 126906, convSales: 3376500, roas: 190 }, bs: { impr: 6630, click: 1929, ctr: 29.1 } },
+      { month: '2026-8', week: '8/23', revTotal: 14731500, revMall: 10306000, revStore: 4425500, targetRevTotal: 8881400, targetRevMall: 4018600, targetRevStore: 4862800, ordersTotal: 49, ordersMall: 32, ordersStore: 17, aovTotal: 300643, aovMall: 322063, aovStore: 260324, dauTotal: 8682, dauMall: 5642, dauStore: 3040, dauCumTotal: 38525, dauCumMall: 23735, dauCumStore: 14790, adMall: { spend: 1131548, impr: 142110, click: 3179, ctr: 2.2, cvr: 0.50, cpa: 70722, convSales: 5358000, roas: 473.51 }, adStore: { spend: 1399331, impr: 594522, click: 1580, ctr: 0.27, cvr: 1.08, cpa: 82314, convSales: 4633500, roas: 331 }, bs: { impr: 6705, click: 1911, ctr: 28.5 } },
+      { month: '2026-8', week: '8/30', revTotal: 12213480, revMall: 6012000, revStore: 6201480, targetRevTotal: 8881400, targetRevMall: 4018600, targetRevStore: 4862800, ordersTotal: 39, ordersMall: 19, ordersStore: 20, aovTotal: 313166, aovMall: 316421, aovStore: 310074, dauTotal: 6366, dauMall: 4131, dauStore: 2235, dauCumTotal: 44891, dauCumMall: 27866, dauCumStore: 17025, adMall: { spend: 712469, impr: 52417, click: 1082, ctr: 2.1, cvr: 0.65, cpa: 101781, convSales: 2371000, roas: 332.79 }, adStore: { spend: 1000767, impr: 290403, click: 1272, ctr: 0.44, cvr: 2.36, cpa: 33359, convSales: 8034110, roas: 803 }, bs: { impr: 6435, click: 2031, ctr: 31.6 } },
+      { month: '2026-9', week: '9/6', revTotal: 15979500, revMall: 4754000, revStore: 11225500, targetRevTotal: 13706750, targetRevMall: 5023250, targetRevStore: 8683500, ordersTotal: 52, ordersMall: 16, ordersStore: 36, aovTotal: 307298, aovMall: 297125, aovStore: 311819, dauTotal: 9012, dauMall: 4109, dauStore: 4903, dauCumTotal: 9012, dauCumMall: 4109, dauCumStore: 4903, adMall: { spend: 881313, impr: 288260, click: 2948, ctr: 1.0, cvr: 0.17, cpa: 176263, convSales: 1585000, roas: 179.85 }, adStore: { spend: 2504070, impr: 1184235, click: 92045, ctr: 7.77, cvr: 0.04, cpa: 67678, convSales: 12053500, roas: 481 }, bs: { impr: 6041, click: 1836, ctr: 30.4 } },
+      { month: '2026-9', week: '9/13', revTotal: 14814980, revMall: 6287000, revStore: 8527980, targetRevTotal: 13706750, targetRevMall: 5023250, targetRevStore: 8683500, ordersTotal: 49, ordersMall: 21, ordersStore: 28, aovTotal: 302347, aovMall: 299381, aovStore: 304571, dauTotal: 10390, dauMall: 3922, dauStore: 6468, dauCumTotal: 19402, dauCumMall: 8031, dauCumStore: 11371, adMall: { spend: 808960, impr: 101521, click: 1166, ctr: 1.1, cvr: 0.86, cpa: 80896, convSales: 3036000, roas: 375.30 }, adStore: { spend: 1812363, impr: 2458582, click: 6087, ctr: 0.25, cvr: 0.53, cpa: 56636, convSales: 9476760, roas: 523 }, bs: { impr: 5794, click: 1835, ctr: 31.7 } },
+      { month: '2026-9', week: '9/20', revTotal: 9173000, revMall: 3787000, revStore: 5386000, targetRevTotal: 13706750, targetRevMall: 5023250, targetRevStore: 8683500, ordersTotal: 26, ordersMall: 11, ordersStore: 15, aovTotal: 352808, aovMall: 344273, aovStore: 359067, dauTotal: 6476, dauMall: 3289, dauStore: 3187, dauCumTotal: 25878, dauCumMall: 11320, dauCumStore: 14558, adMall: { spend: 826689, impr: 101594, click: 1247, ctr: 1.2, cvr: 0.48, cpa: 137781, convSales: 1984000, roas: 239.99 }, adStore: { spend: 853227, impr: 943301, click: 2848, ctr: 0.30, cvr: 0.63, cpa: 47402, convSales: 5668000, roas: 664 }, bs: { impr: 4519, click: 1342, ctr: 29.7 } },
+      { month: '2026-9', week: '9/27', revTotal: 12991000, revMall: 5470000, revStore: 7521000, targetRevTotal: 13706750, targetRevMall: 5023250, targetRevStore: 8683500, ordersTotal: 41, ordersMall: 17, ordersStore: 24, aovTotal: 316854, aovMall: 321765, aovStore: 313375, dauTotal: 6205, dauMall: 3751, dauStore: 2454, dauCumTotal: 32083, dauCumMall: 15071, dauCumStore: 17012, adMall: { spend: 689363, impr: 69538, click: 1018, ctr: 1.5, cvr: 0.59, cpa: 114894, convSales: 2045000, roas: 296.65 }, adStore: { spend: 1025269, impr: 688995, click: 1779, ctr: 0.26, cvr: 1.24, cpa: 46603, convSales: 6693000, roas: 653 }, bs: { impr: 6020, click: 1890, ctr: 31.4 } },
+      { month: '2026-10', week: '10/4', revTotal: 10777000, revMall: 4391000, revStore: 6386000, targetRevTotal: 15320750, targetRevMall: 4734250, targetRevStore: 10586500, ordersTotal: 40, ordersMall: 18, ordersStore: 22, aovTotal: 269425, aovMall: 243944, aovStore: 290273, dauTotal: 5144, dauMall: 3135, dauStore: 2009, dauCumTotal: 5144, dauCumMall: 3135, dauCumStore: 2009, adMall: { spend: 476063, impr: 96323, click: 765, ctr: 0.8, cvr: 0.26, cpa: 238032, convSales: 415000, roas: 87.17 }, adStore: { spend: 869891, impr: 336372, click: 1314, ctr: 0.39, cvr: 1.07, cpa: 62092, convSales: 4451000, roas: 512 }, bs: { impr: 5235, click: 1573, ctr: 30.0 } },
+      { month: '2026-10', week: '10/11', revTotal: 5948000, revMall: 948000, revStore: 5000000, targetRevTotal: 15320750, targetRevMall: 4734250, targetRevStore: 10586500, ordersTotal: 24, ordersMall: 4, ordersStore: 20, aovTotal: 247833, aovMall: 237000, aovStore: 250000, dauTotal: 6399, dauMall: 3057, dauStore: 3342, dauCumTotal: 11543, dauCumMall: 6192, dauCumStore: 5351, adMall: { spend: 302154, impr: 46497, click: 541, ctr: 1.2, cvr: 0.0, cpa: 0, convSales: 0, roas: 0 }, adStore: { spend: 2452138, impr: 1039146, click: 3711, ctr: 0.36, cvr: 0.54, cpa: 122607, convSales: 5340000, roas: 218 }, bs: { impr: 5811, click: 1725, ctr: 29.7 } },
+      { month: '2026-10', week: '10/18', revTotal: 12372200, revMall: 6081000, revStore: 6291200, targetRevTotal: 15320750, targetRevMall: 4734250, targetRevStore: 10586500, ordersTotal: 41, ordersMall: 20, ordersStore: 21, aovTotal: 301761, aovMall: 304050, aovStore: 299581, dauTotal: 6007, dauMall: 3435, dauStore: 2572, dauCumTotal: 17550, dauCumMall: 9627, dauCumStore: 7923, adMall: { spend: 436810, impr: 41590, click: 985, ctr: 2.4, cvr: 0.91, cpa: 48534, convSales: 2834000, roas: 648.79 }, adStore: { spend: 1507321, impr: 431240, click: 1787, ctr: 0.41, cvr: 1.18, cpa: 75366, convSales: 6684200, roas: 443 }, bs: { impr: 5857, click: 1720, ctr: 29.4 } }
+    ];
+
+    let currentMainTab = 'group-revenue';
+    let currentAdSubTab = 'ad-mall';
+    let currentMonth = 'all';
+    let currentChannel = 'total';
+
+    let chartRevChannels = null;
+    let chartRevOrdersAov = null;
+    let singleChart = null;
+
+    const formatWon = (v) => (!v && v !== 0) ? '-' : (v >= 100000000) ? (v / 100000000).toFixed(1) + '억원' : (v >= 10000) ? Math.round(v / 10000).toLocaleString() + '만원' : Math.round(v).toLocaleString() + '원';
+
+    function badgeStyle(rate) {
+      return rate >= 100 ? 'bg-emerald-100 text-emerald-700 font-bold' : rate >= 90 ? 'bg-amber-100 text-amber-700 font-bold' : 'bg-rose-100 text-rose-700 font-bold';
+    }
+
+    // -------------------------------------------------------------
+    // 2. 구글 시트 6단 파서 (버그 완벽 수정)
+    // -------------------------------------------------------------
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let insideQuote = false;
+
+      for (let i = 0; i < text.length; i++) {
+        let ch = text[i];
+        let next = text[i + 1];
+
+        if (ch === '"') {
+          if (insideQuote && next === '"') { cell += '"'; i++; }
+          else { insideQuote = !insideQuote; }
+        } else if (ch === ',' && !insideQuote) {
+          row.push(cell.trim());
+          cell = '';
+        } else if ((ch === '\r' || ch === '\n') && !insideQuote) {
+          if (ch === '\r' && next === '\n') i++;
+          row.push(cell.trim());
+          if (row.some(c => c.length > 0)) rows.push(row);
+          row = [];
+          cell = '';
+        } else {
+          cell += ch;
+        }
+      }
+      if (cell.length > 0 || row.length > 0) {
+        row.push(cell.trim());
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    const parseNum = (val) => {
+      if (!val) return 0;
+      let cleaned = String(val).replace(/[^0-9.-]/g, '');
+      let n = parseFloat(cleaned);
+      return isNaN(n) ? 0 : n;
+    };
+
+    const clean = (s) => String(s || '').replace(/\s+/g, '');
+
+    function parseSheetData(csvText) {
+      const matrix = parseCSV(csvText);
+      if (matrix.length < 20) throw new Error('시트 데이터가 유효하지 않습니다.');
+
+      // 1. 헤더 행(월, 일자) 찾기
+      let monthRowIdx = matrix.findIndex(r => r.some(c => clean(c).includes('2026-')));
+      if (monthRowIdx === -1) monthRowIdx = 1;
+      let dateRowIdx = monthRowIdx + 1;
+
+      const monthRow = matrix[monthRowIdx];
+      const dateRow = matrix[dateRowIdx];
+
+      const colMap = [];
+      let curMonth = '';
+      for (let col = 7; col < dateRow.length; col++) {
+        let mVal = clean(monthRow[col]);
+        if (mVal.includes('2026-')) {
+          curMonth = mVal.match(/2026-\d+/)?.[0] || mVal;
+        }
+        let dayVal = clean(dateRow[col]);
+        if (dayVal && !isNaN(parseInt(dayVal))) {
+          colMap.push({ col, month: curMonth, day: parseInt(dayVal) });
+        }
+      }
+
+      // 안전한 섹션별 행 탐색 함수
+      function findSection(keyword, startRow = 0) {
+        const k = clean(keyword);
+        for (let i = startRow; i < matrix.length; i++) {
+          if (!matrix[i]) continue;
+          const txt = clean(matrix[i].slice(0, 5).join(' '));
+          if (txt.includes(k)) return i;
+        }
+        return -1;
+      }
+
+      function findSubRow(keyword, startRow, endRow) {
+        const k = clean(keyword);
+        const limit = Math.min(endRow, matrix.length - 1);
+        for (let i = startRow; i <= limit; i++) {
+          if (!matrix[i]) continue;
+          const txt = clean(matrix[i].slice(0, 7).join(' '));
+          if (txt.includes(k)) return i;
+        }
+        return -1;
+      }
+
+      // 섹션별 행 위치 정확한 매핑
+      const s_rev = findSection('D2C매출', 0);
+      const r_revTarget = findSubRow('월목표', s_rev, s_rev + 5);
+      const r_revTargetMall = r_revTarget + 1;
+      const r_revTargetStore = r_revTarget + 2;
+      const r_revActualMonth = findSubRow('월누계', s_rev + 2, s_rev + 8);
+      const r_revActualMonthMall = r_revActualMonth + 1;
+      const r_revActualMonthStore = r_revActualMonth + 2;
+      const r_revWeekly = findSubRow('Actual(주단위)', s_rev + 5, s_rev + 12);
+      const r_revWeeklyMall = r_revWeekly + 1;
+      const r_revWeeklyStore = r_revWeekly + 2;
+
+      const s_inflow = findSection('D2C유입', s_rev + 10);
+      const r_mauTarget = findSubRow('월목표', s_inflow, s_inflow + 4);
+      const r_mauActualMonth = findSubRow('월실적누계', s_inflow + 1, s_inflow + 5);
+      const r_mauActualMonthMall = r_mauActualMonth + 1;
+      const r_mauActualMonthStore = r_mauActualMonth + 2;
+      const r_dau_start = findSubRow('sumDAU', s_inflow + 3, s_inflow + 10);
+      const r_dauSumMonth = findSubRow('월실적누계', r_dau_start, r_dau_start + 4);
+      const r_dauSumMonthMall = r_dauSumMonth + 1;
+      const r_dauSumMonthStore = r_dauSumMonth + 2;
+      const r_dauWeekly = findSubRow('Actual(주단위)', r_dau_start, r_dau_start + 6);
+      const r_dauWeeklyMall = r_dauWeekly + 1;
+      const r_dauWeeklyStore = r_dauWeekly + 2;
+      const r_freq = findSubRow('Frequency', s_inflow + 8, s_inflow + 16);
+      const r_freqRow = findSubRow('예상마감', r_freq, r_freq + 3);
+
+      const s_order = findSection('D2C구매', s_inflow + 12);
+      const r_ord_start = findSubRow('구매건수', s_order, s_order + 6);
+      const r_ordTarget = r_ord_start;
+      const r_ordTargetMall = r_ordTarget + 1;
+      const r_ordTargetStore = r_ordTarget + 2;
+      const r_ordActualMonth = findSubRow('월실적누계', r_ord_start, r_ord_start + 6);
+      const r_ordActualMonthMall = r_ordActualMonth + 1;
+      const r_ordActualMonthStore = r_ordActualMonth + 2;
+      // [버그 수정 완료]: r_ord_actualMonth -> r_ordActualMonth
+      const r_ordWeekly = findSubRow('Actual(주단위)', r_ordActualMonth, r_ordActualMonth + 6);
+      const r_ordWeeklyMall = r_ordWeekly + 1;
+      const r_ordWeeklyStore = r_ordWeekly + 2;
+
+      // [버그 수정 완료]: r_ord_actualMonth -> r_ordActualMonth
+      const r_aov = findSubRow('구매당매출', r_ordActualMonth, r_ordActualMonth + 20);
+      const r_aovTarget = r_aov;
+      const r_aovActualMonth = findSubRow('월실적누계', r_aov, r_aov + 4);
+      const r_aovActualMonthMall = r_aovActualMonth + 1;
+      const r_aovActualMonthStore = r_aovActualMonth + 2;
+      const r_aovWeekly = findSubRow('Actual(주단위)', r_aov, r_aov + 6);
+      const r_aovWeeklyMall = r_aovWeekly + 1;
+      const r_aovWeeklyStore = r_aovWeekly + 2;
+
+      const s_mkt_mall = findSection('마케팅플랜자사몰', s_order + 20);
+      const r_adMallSpend = findSubRow('광고비', s_mkt_mall, s_mkt_mall + 6);
+      const r_adMallImpr = r_adMallSpend + 1;
+      const r_adMallClick = r_adMallSpend + 2;
+      const r_adMallCtr = r_adMallSpend + 3;
+      const r_adMallCvr = r_adMallSpend + 4;
+      const r_adMallCpa = r_adMallSpend + 5;
+      const r_adMallSales = r_adMallSpend + 6;
+      const r_adMallRoas = r_adMallSpend + 7;
+
+      const s_bs = findSection('네이버브랜드검색', s_mkt_mall + 8);
+      const r_bsImpr = findSubRow('노출량', s_bs, s_bs + 4);
+      const r_bsClick = r_bsImpr + 1;
+      const r_bsCtr = r_bsImpr + 2;
+
+      const s_mkt_store = findSection('마케팅플랜스마트스토어', s_bs + 5);
+      const r_adStoreSpend = findSubRow('광고비', s_mkt_store, s_mkt_store + 6);
+      const r_adStoreImpr = r_adStoreSpend + 1;
+      const r_adStoreClick = r_adStoreSpend + 2;
+      const r_adStoreCtr = r_adStoreSpend + 3;
+      const r_adStoreCvr = r_adStoreSpend + 4;
+      const r_adStoreCpa = r_adStoreSpend + 5;
+      const r_adStoreSales = r_adStoreSpend + 6;
+      const r_adStoreRoas = r_adStoreSpend + 7;
+
+      // 1. 월별 데이터 생성
+      const distinctMonths = [...new Set(colMap.map(c => c.month))].filter(m => m && m.startsWith('2026-'));
+      const parsedMonths = [];
+
+      distinctMonths.forEach(mKey => {
+        const firstColObj = colMap.find(c => c.month === mKey);
+        const col = firstColObj ? firstColObj.col : 7;
+
+        let tRev = parseNum(matrix[r_revTarget]?.[col]);
+        let tRevMall = parseNum(matrix[r_revTargetMall]?.[col]);
+        let tRevStore = parseNum(matrix[r_revTargetStore]?.[col]);
+        let aRev = parseNum(matrix[r_revActualMonth]?.[col]);
+        let aRevMall = parseNum(matrix[r_revActualMonthMall]?.[col]);
+        let aRevStore = parseNum(matrix[r_revActualMonthStore]?.[col]);
+
+        let tMau = parseNum(matrix[r_mauTarget]?.[col]);
+        let aMau = parseNum(matrix[r_mauActualMonth]?.[col]);
+        let aMauMall = parseNum(matrix[r_mauActualMonthMall]?.[col]);
+        let aMauStore = parseNum(matrix[r_mauActualMonthStore]?.[col]);
+
+        let dSum = parseNum(matrix[r_dauSumMonth]?.[col]);
+        let dSumMall = parseNum(matrix[r_dauSumMonthMall]?.[col]);
+        let dSumStore = parseNum(matrix[r_dauSumMonthStore]?.[col]);
+
+        let freq = parseNum(matrix[r_freqRow]?.[col]) || (aMau > 0 ? (dSum / aMau) : 0);
+
+        parsedMonths.push({
+          key: mKey,
+          label: mKey.replace('2026-', '') + '월',
+          targetRev: tRev, targetRevMall: tRevMall, targetRevStore: tRevStore,
+          actualRev: aRev, actualRevMall: aRevMall, actualRevStore: aRevStore,
+          targetMau: tMau, targetMauMall: tMau, targetMauStore: tRevStore > 0 ? tMau * 0.4 : 0,
+          actualMau: aMau, actualMauMall: aMauMall, actualMauStore: aMauStore,
+          dauSum: dSum, dauSumMall: dSumMall, dauSumStore: dSumStore,
+          freq: freq,
+          freqMall: aMauMall > 0 ? (dSumMall / aMauMall) : 0,
+          freqStore: aMauStore > 0 ? (dSumStore / aMauStore) : 0,
+          targetOrders: parseNum(matrix[r_ordTarget]?.[col]),
+          targetOrdersMall: parseNum(matrix[r_ordTargetMall]?.[col]),
+          targetOrdersStore: parseNum(matrix[r_ordTargetStore]?.[col]),
+          actualOrders: parseNum(matrix[r_ordActualMonth]?.[col]),
+          actualOrdersMall: parseNum(matrix[r_ordActualMonthMall]?.[col]),
+          actualOrdersStore: parseNum(matrix[r_ordActualMonthStore]?.[col]),
+          targetAov: parseNum(matrix[r_aovTarget]?.[col]),
+          actualAov: parseNum(matrix[r_aovActualMonth]?.[col]),
+          actualAovMall: parseNum(matrix[r_aovActualMonthMall]?.[col]),
+          actualAovStore: parseNum(matrix[r_aovActualMonthStore]?.[col])
+        });
+      });
+
+      // 2. 주차별 데이터 생성
+      const parsedWeeks = [];
+      let curMonthDauCumTotal = 0, curMonthDauCumMall = 0, curMonthDauCumStore = 0;
+      let lastMonth = '';
+
+      colMap.forEach(item => {
+        const c = item.col;
+        const mKey = item.month;
+        const mMeta = parsedMonths.find(m => m.key === mKey);
+
+        if (mKey !== lastMonth) {
+          curMonthDauCumTotal = 0;
+          curMonthDauCumMall = 0;
+          curMonthDauCumStore = 0;
+          lastMonth = mKey;
+        }
+
+        const revTot = parseNum(matrix[r_revWeekly]?.[c]);
+        const revMall = parseNum(matrix[r_revWeeklyMall]?.[c]);
+        const revStore = parseNum(matrix[r_revWeeklyStore]?.[c]);
+
+        // 실적이 완전히 0인 미래 주차 제외
+        if (revTot === 0 && parseNum(matrix[r_dauWeekly]?.[c]) === 0 && (mKey === '2026-11' || mKey === '2026-12')) {
+          return;
+        }
+
+        const dauTot = parseNum(matrix[r_dauWeekly]?.[c]);
+        const dauMall = parseNum(matrix[r_dauWeeklyMall]?.[c]);
+        const dauStore = parseNum(matrix[r_dauWeeklyStore]?.[c]);
+
+        curMonthDauCumTotal += dauTot;
+        curMonthDauCumMall += dauMall;
+        curMonthDauCumStore += dauStore;
+
+        const sSpend = parseNum(matrix[r_adStoreSpend]?.[c]);
+
+        parsedWeeks.push({
+          month: mKey,
+          week: `${item.day}일`,
+          revTotal: revTot, revMall: revMall, revStore: revStore,
+          targetRevTotal: (mMeta ? mMeta.targetRev : 0) / 4,
+          targetRevMall: (mMeta ? mMeta.targetRevMall : 0) / 4,
+          targetRevStore: (mMeta ? mMeta.targetRevStore : 0) / 4,
+          ordersTotal: parseNum(matrix[r_ordWeekly]?.[c]),
+          ordersMall: parseNum(matrix[r_ordWeeklyMall]?.[c]),
+          ordersStore: parseNum(matrix[r_ordWeeklyStore]?.[c]),
+          aovTotal: parseNum(matrix[r_aovWeekly]?.[c]),
+          aovMall: parseNum(matrix[r_aovWeeklyMall]?.[c]),
+          aovStore: parseNum(matrix[r_aovWeeklyStore]?.[c]),
+          dauTotal: dauTot, dauMall: dauMall, dauStore: dauStore,
+          dauCumTotal: curMonthDauCumTotal, dauCumMall: curMonthDauCumMall, dauCumStore: curMonthDauCumStore,
+          adMall: {
+            spend: parseNum(matrix[r_adMallSpend]?.[c]),
+            impr: parseNum(matrix[r_adMallImpr]?.[c]),
+            click: parseNum(matrix[r_adMallClick]?.[c]),
+            ctr: parseNum(matrix[r_adMallCtr]?.[c]),
+            cvr: parseNum(matrix[r_adMallCvr]?.[c]),
+            cpa: parseNum(matrix[r_adMallCpa]?.[c]),
+            convSales: parseNum(matrix[r_adMallSales]?.[c]),
+            roas: parseNum(matrix[r_adMallRoas]?.[c])
+          },
+          adStore: (sSpend > 0 || revStore > 0) ? {
+            spend: sSpend,
+            impr: parseNum(matrix[r_adStoreImpr]?.[c]),
+            click: parseNum(matrix[r_adStoreClick]?.[c]),
+            ctr: parseNum(matrix[r_adStoreCtr]?.[c]),
+            cvr: parseNum(matrix[r_adStoreCvr]?.[c]),
+            cpa: parseNum(matrix[r_adStoreCpa]?.[c]),
+            convSales: parseNum(matrix[r_adStoreSales]?.[c]),
+            roas: parseNum(matrix[r_adStoreRoas]?.[c])
+          } : null,
+          bs: {
+            impr: parseNum(matrix[r_bsImpr]?.[c]),
+            click: parseNum(matrix[r_bsClick]?.[c]),
+            ctr: parseNum(matrix[r_bsCtr]?.[c])
+          }
+        });
+      });
+
+      return { monthsData: parsedMonths, weeks: parsedWeeks };
+    }
+
+    // -------------------------------------------------------------
+    // 3. 브라우저 실시간 Fetcher (직접 Fetch 1순위 적용)
+    // -------------------------------------------------------------
+    async function fetchLiveGoogleSheet(isManual = false) {
+      const statusBadge = document.getElementById('syncStatusBadge');
+      const refreshIcon = document.getElementById('refreshIcon');
+      refreshIcon.classList.add('animate-spin');
+      statusBadge.textContent = '● 구글 시트 연결 중...';
+      statusBadge.className = 'text-[11px] font-mono text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300';
+
+      const directUrl = `${LIVE_CSV_URL}&_nocache=${Date.now()}`;
+      const endpoints = [
+        directUrl, // 1순위: 직접 Fetch (구글 웹게시는 브라우저에서 직접 읽기 지원)
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(directUrl)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(directUrl)}`
+      ];
+
+      let isSuccess = false;
+
+      for (let gw of endpoints) {
+        try {
+          const res = await fetch(gw);
+          if (res.ok) {
+            const csvText = await res.text();
+            if (csvText && csvText.includes('2026-')) {
+              const parsed = parseSheetData(csvText);
+              if (parsed.monthsData.length > 0 && parsed.weeks.length > 0) {
+                monthsData = parsed.monthsData;
+                weeks = parsed.weeks;
+                isSuccess = true;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('연결 시도 중...', gw, e);
+        }
+      }
+
+      refreshIcon.classList.remove('animate-spin');
+
+      if (isSuccess) {
+        statusBadge.textContent = '● 구글 시트 실시간 연동 완료 (' + new Date().toLocaleTimeString('ko-KR') + ')';
+        statusBadge.className = 'text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300';
+        closeSyncModal();
+        if (isManual) alert('구글 시트의 최신 수치가 성공적으로 반영되었습니다.');
+      } else {
+        statusBadge.textContent = '● 기본 데이터 가동 중 (연동 시도 실패)';
+        statusBadge.className = 'text-[11px] font-mono text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300';
+        if (isManual) {
+          alert('구글 시트 자동 호출에 실패했습니다. 모달 창에서 시트 내용을 직접 복사/붙여넣기 하실 수 있습니다.');
+          openSyncModal();
+        }
+      }
+
+      renderDashboard();
+    }
+
+    function applyManualCsv() {
+      const text = document.getElementById('csvDirectInput').value.trim();
+      if (!text) {
+        alert('붙여넣을 CSV 내용이 없습니다.');
+        return;
+      }
+      try {
+        const parsed = parseSheetData(text);
+        monthsData = parsed.monthsData;
+        weeks = parsed.weeks;
+        document.getElementById('syncStatusBadge').textContent = '● 수동 붙여넣기 데이터 적용 완료 (' + new Date().toLocaleTimeString('ko-KR') + ')';
+        document.getElementById('syncStatusBadge').className = 'text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300';
+        closeSyncModal();
+        alert('붙여넣은 구글 시트 데이터가 대시보드에 성공적으로 반영되었습니다.');
+        renderDashboard();
+      } catch (err) {
+        alert('CSV 파싱 오류: ' + err.message);
+      }
+    }
+
+    function openSyncModal() {
+      document.getElementById('sheetUrlInput').value = LIVE_CSV_URL;
+      document.getElementById('syncModal').classList.remove('hidden');
+    }
+    function closeSyncModal() {
+      document.getElementById('syncModal').classList.add('hidden');
+    }
+
+    // -------------------------------------------------------------
+    // 4. 상단 요약 카드 계산
+    // -------------------------------------------------------------
+    function updateTopSummary() {
+      const activeMonths = (currentMonth === 'all') ? monthsData : monthsData.filter(m => m.key === currentMonth);
+      const activeWeeks = (currentMonth === 'all') ? weeks : weeks.filter(w => w.month === currentMonth);
+
+      const chanLabel = currentChannel === 'mall' ? '자사몰' : (currentChannel === 'store' ? '스마트스토어' : '전체');
+      document.getElementById('badgeTargetChannel').textContent = chanLabel;
+
+      let revActual = 0, revTarget = 0, ordersCount = 0, dauSumVal = 0, mauActual = 0, mauTarget = 0, freqSum = 0;
+
+      activeMonths.forEach(m => {
+        if (currentChannel === 'mall') {
+          revActual += m.actualRevMall; revTarget += m.targetRevMall; ordersCount += m.actualOrdersMall; mauActual += m.actualMauMall; mauTarget += m.targetMauMall; freqSum += m.freqMall;
+        } else if (currentChannel === 'store') {
+          revActual += m.actualRevStore; revTarget += m.targetRevStore; ordersCount += m.actualOrdersStore; mauActual += m.actualMauStore; mauTarget += m.targetMauStore; freqSum += m.freqStore;
+        } else {
+          revActual += m.actualRev; revTarget += m.targetRev; ordersCount += m.actualOrders; mauActual += m.actualMau; mauTarget += m.targetMau; freqSum += m.freq;
+        }
+      });
+
+      activeWeeks.forEach(w => {
+        if (currentChannel === 'mall') dauSumVal += w.dauMall;
+        else if (currentChannel === 'store') dauSumVal += w.dauStore;
+        else dauSumVal += w.dauTotal;
+      });
+
+      // 1. 매출
+      const revRate = revTarget > 0 ? (revActual / revTarget) * 100 : 0;
+      const aovVal = ordersCount > 0 ? (revActual / ordersCount) : 0;
+      document.getElementById('summaryRevActual').textContent = formatWon(revActual);
+      document.getElementById('summaryRevTarget').textContent = formatWon(revTarget);
+      const revBadge = document.getElementById('summaryRevRate');
+      revBadge.textContent = `${revRate.toFixed(1)}% 달성`;
+      revBadge.className = `text-xs px-2 py-0.5 rounded-full ${badgeStyle(revRate)}`;
+      document.getElementById('summaryOrders').textContent = `${ordersCount.toLocaleString()}건`;
+      document.getElementById('summaryAov').textContent = `${Math.round(aovVal).toLocaleString()}원`;
+
+      // 2. 구매전환율 (구매건수 / DAU 누계)
+      const cvrVal = dauSumVal > 0 ? (ordersCount / dauSumVal) * 100 : 0;
+      document.getElementById('summaryCvrVal').textContent = `${cvrVal.toFixed(2)}%`;
+      document.getElementById('summaryCvrOrders').textContent = `${ordersCount.toLocaleString()}건`;
+      document.getElementById('summaryCvrDau').textContent = `${dauSumVal.toLocaleString()}명`;
+
+      // 3. 유입자수
+      const mauRate = mauTarget > 0 ? (mauActual / mauTarget) * 100 : 0;
+      const avgFreq = activeMonths.length > 0 ? (freqSum / activeMonths.length) : 0;
+      document.getElementById('summaryMauActual').textContent = `${mauActual.toLocaleString()}명`;
+      document.getElementById('summaryMauTarget').textContent = `${Math.round(mauTarget).toLocaleString()}명`;
+      const mauBadge = document.getElementById('summaryMauRate');
+      mauBadge.textContent = `${mauRate.toFixed(1)}%`;
+      mauBadge.className = `text-xs px-2.5 py-0.5 rounded-full ${badgeStyle(mauRate)}`;
+      document.getElementById('summaryDauSum').textContent = `${dauSumVal.toLocaleString()}명`;
+      document.getElementById('summaryFreq').textContent = avgFreq.toFixed(2);
+
+      // 4. 광고효율
+      let totSpend = 0, totConvSales = 0;
+      activeWeeks.forEach(w => {
+        if (currentChannel === 'mall' || currentChannel === 'total') {
+          if (w.adMall) { totSpend += w.adMall.spend; totConvSales += w.adMall.convSales; }
+        }
+        if (currentChannel === 'store' || currentChannel === 'total') {
+          if (w.adStore) { totSpend += w.adStore.spend; totConvSales += w.adStore.convSales; }
+        }
+      });
+      const totalRoas = totSpend > 0 ? (totConvSales / totSpend) * 100 : 0;
+      document.getElementById('summaryTotalRoas').textContent = `${totalRoas.toFixed(1)}%`;
+      document.getElementById('summaryTotalSpend').textContent = formatWon(totSpend);
+      document.getElementById('summaryConvSales').textContent = formatWon(totConvSales);
+      document.getElementById('summaryRoasChannelLabel').textContent = chanLabel;
+      const roasBadge = document.getElementById('summaryTotalRoasBadge');
+      roasBadge.textContent = `${chanLabel} ROAS ${totalRoas.toFixed(1)}%`;
+      roasBadge.className = `text-xs px-2.5 py-0.5 rounded-full ${totalRoas >= 250 ? 'bg-emerald-100 text-emerald-700 font-bold' : 'bg-amber-100 text-amber-700 font-bold'}`;
+    }
+
+    // -------------------------------------------------------------
+    // 5. 테이블 렌더링
+    // -------------------------------------------------------------
+    function renderTables(activeWeeks) {
+      const table = document.getElementById('primaryDataTable');
+      table.innerHTML = '';
+
+      if (currentMainTab === 'group-revenue') {
+        const chanText = currentChannel === 'mall' ? '자사몰 전용' : (currentChannel === 'store' ? '스마트스토어 전용' : '전체 채널');
+        document.getElementById('tableTitle').textContent = `1. 매출 실적 테이블 (${chanText})`;
+        document.getElementById('tableDesc').textContent = `선택된 채널(${chanText})의 주차별 매출, 목표 대비 달성률, 주문건수 및 AOV`;
+
+        if (currentChannel === 'mall') {
+          table.innerHTML = `
+            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+              <tr>
+                <th class="py-3 px-4">주차 일자</th>
+                <th class="py-3 px-4 text-right">자사몰 매출</th>
+                <th class="py-3 px-4 text-right">자사몰 주간 목표</th>
+                <th class="py-3 px-4 text-center">매출 달성률</th>
+                <th class="py-3 px-4 text-right">자사몰 구매건수</th>
+                <th class="py-3 px-4 text-right">자사몰 AOV</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y font-mono">
+              ${activeWeeks.map(w => {
+                const rate = w.targetRevMall > 0 ? (w.revMall / w.targetRevMall) * 100 : 0;
+                return `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-2.5 px-4 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                    <td class="py-2.5 px-4 text-right font-bold text-indigo-600">${w.revMall.toLocaleString()}원</td>
+                    <td class="py-2.5 px-4 text-right text-slate-400">${Math.round(w.targetRevMall).toLocaleString()}원</td>
+                    <td class="py-2.5 px-4 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] ${badgeStyle(rate)}">${rate.toFixed(1)}%</span></td>
+                    <td class="py-2.5 px-4 text-right font-semibold text-slate-800">${w.ordersMall}건</td>
+                    <td class="py-2.5 px-4 text-right text-amber-600 font-semibold">${w.aovMall.toLocaleString()}원</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          `;
+        } else if (currentChannel === 'store') {
+          table.innerHTML = `
+            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+              <tr>
+                <th class="py-3 px-4">주차 일자</th>
+                <th class="py-3 px-4 text-right">스마트스토어 매출</th>
+                <th class="py-3 px-4 text-right">스토어 주간 목표</th>
+                <th class="py-3 px-4 text-center">매출 달성률</th>
+                <th class="py-3 px-4 text-right">스토어 구매건수</th>
+                <th class="py-3 px-4 text-right">스토어 AOV</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y font-mono">
+              ${activeWeeks.map(w => {
+                const rate = w.targetRevStore > 0 ? (w.revStore / w.targetRevStore) * 100 : 0;
+                return `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-2.5 px-4 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                    <td class="py-2.5 px-4 text-right font-bold text-emerald-600">${w.revStore > 0 ? w.revStore.toLocaleString() + '원' : '-'}</td>
+                    <td class="py-2.5 px-4 text-right text-slate-400">${w.targetRevStore > 0 ? Math.round(w.targetRevStore).toLocaleString() + '원' : '-'}</td>
+                    <td class="py-2.5 px-4 text-center">
+                      ${w.targetRevStore > 0 ? `<span class="inline-block px-2 py-0.5 rounded text-[11px] ${badgeStyle(rate)}">${rate.toFixed(1)}%</span>` : '<span class="text-slate-400">-</span>'}
+                    </td>
+                    <td class="py-2.5 px-4 text-right font-semibold text-slate-800">${w.ordersStore > 0 ? w.ordersStore + '건' : '-'}</td>
+                    <td class="py-2.5 px-4 text-right text-amber-600 font-semibold">${w.aovStore > 0 ? w.aovStore.toLocaleString() + '원' : '-'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          `;
+        } else {
+          table.innerHTML = `
+            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+              <tr>
+                <th class="py-3 px-3">주차 일자</th>
+                <th class="py-3 px-3 text-right">총매출</th>
+                <th class="py-3 px-3 text-right">자사몰 매출</th>
+                <th class="py-3 px-3 text-right">스토어 매출</th>
+                <th class="py-3 px-3 text-center">달성률</th>
+                <th class="py-3 px-3 text-right bg-indigo-50 text-indigo-700">구매건수(통합)</th>
+                <th class="py-3 px-3 text-right bg-indigo-50">자사몰 건수</th>
+                <th class="py-3 px-3 text-right bg-indigo-50">스토어 건수</th>
+                <th class="py-3 px-3 text-right bg-amber-50 text-amber-700">AOV(통합)</th>
+                <th class="py-3 px-3 text-right bg-amber-50">자사몰 AOV</th>
+                <th class="py-3 px-3 text-right bg-amber-50">스토어 AOV</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y font-mono">
+              ${activeWeeks.map(w => {
+                const rate = w.targetRevTotal > 0 ? (w.revTotal / w.targetRevTotal) * 100 : 0;
+                return `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-2.5 px-3 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                    <td class="py-2.5 px-3 text-right font-bold text-slate-900">${w.revTotal.toLocaleString()}원</td>
+                    <td class="py-2.5 px-3 text-right text-indigo-600 font-semibold">${w.revMall.toLocaleString()}원</td>
+                    <td class="py-2.5 px-3 text-right ${w.revStore > 0 ? 'text-emerald-600 font-semibold' : 'text-slate-400'}">${w.revStore > 0 ? w.revStore.toLocaleString() + '원' : '-'}</td>
+                    <td class="py-2.5 px-3 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] ${badgeStyle(rate)}">${rate.toFixed(1)}%</span></td>
+                    <td class="py-2.5 px-3 text-right font-bold text-slate-800 bg-indigo-50/30">${w.ordersTotal}건</td>
+                    <td class="py-2.5 px-3 text-right bg-indigo-50/30 text-slate-600">${w.ordersMall}건</td>
+                    <td class="py-2.5 px-3 text-right bg-indigo-50/30 text-slate-600">${w.ordersStore > 0 ? w.ordersStore + '건' : '-'}</td>
+                    <td class="py-2.5 px-3 text-right font-bold text-amber-600 bg-amber-50/30">${w.aovTotal.toLocaleString()}원</td>
+                    <td class="py-2.5 px-3 text-right bg-amber-50/30 text-slate-600">${w.aovMall.toLocaleString()}원</td>
+                    <td class="py-2.5 px-3 text-right bg-amber-50/30 text-slate-600">${w.aovStore > 0 ? w.aovStore.toLocaleString() + '원' : '-'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          `;
+        }
+
+      } else if (currentMainTab === 'group-traffic') {
+        const chanText = currentChannel === 'mall' ? '자사몰 전용' : (currentChannel === 'store' ? '스마트스토어 전용' : '전체 채널');
+        document.getElementById('tableTitle').textContent = `2. 유입자수 테이블 (${chanText})`;
+        document.getElementById('tableDesc').textContent = `선택된 채널(${chanText})의 DAU, DAU 누적, MAU 실적 및 방문 빈도`;
+
+        if (currentChannel === 'mall') {
+          table.innerHTML = `
+            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+              <tr>
+                <th class="py-3 px-4">주차 일자</th>
+                <th class="py-3 px-4 text-right">자사몰 주간 sum DAU</th>
+                <th class="py-3 px-4 text-right">자사몰 DAU 누적</th>
+                <th class="py-3 px-4 text-right">자사몰 MAU 실적</th>
+                <th class="py-3 px-4 text-center">자사몰 방문 빈도</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y font-mono">
+              ${activeWeeks.map(w => {
+                const m = monthsData.find(item => item.key === w.month);
+                return `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-2.5 px-4 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                    <td class="py-2.5 px-4 text-right font-bold text-sky-600">${w.dauMall.toLocaleString()}명</td>
+                    <td class="py-2.5 px-4 text-right font-semibold text-slate-800">${w.dauCumMall.toLocaleString()}명</td>
+                    <td class="py-2.5 px-4 text-right font-semibold text-indigo-600">${m ? m.actualMauMall.toLocaleString() : 0}명</td>
+                    <td class="py-2.5 px-4 text-center font-bold text-indigo-600">${m ? m.freqMall.toFixed(2) : '-'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          `;
+        } else if (currentChannel === 'store') {
+          table.innerHTML = `
+            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+              <tr>
+                <th class="py-3 px-4">주차 일자</th>
+                <th class="py-3 px-4 text-right">스토어 주간 sum DAU</th>
+                <th class="py-3 px-4 text-right">스토어 DAU 누적</th>
+                <th class="py-3 px-4 text-right">스토어 MAU 실적</th>
+                <th class="py-3 px-4 text-center">스토어 방문 빈도</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y font-mono">
+              ${activeWeeks.map(w => {
+                const m = monthsData.find(item => item.key === w.month);
+                return `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-2.5 px-4 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                    <td class="py-2.5 px-4 text-right font-bold text-sky-600">${w.dauStore > 0 ? w.dauStore.toLocaleString() + '명' : '-'}</td>
+                    <td class="py-2.5 px-4 text-right font-semibold text-slate-800">${w.dauCumStore > 0 ? w.dauCumStore.toLocaleString() + '명' : '-'}</td>
+                    <td class="py-2.5 px-4 text-right font-semibold text-indigo-600">${m && m.actualMauStore > 0 ? m.actualMauStore.toLocaleString() + '명' : '-'}</td>
+                    <td class="py-2.5 px-4 text-center font-bold text-indigo-600">${m && m.freqStore > 0 ? m.freqStore.toFixed(2) : '-'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          `;
+        } else {
+          table.innerHTML = `
+            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+              <tr>
+                <th class="py-3 px-3">주차 일자</th>
+                <th class="py-3 px-3 text-right">주간 sum DAU</th>
+                <th class="py-3 px-3 text-right bg-sky-50 text-sky-700">DAU 누적(통합)</th>
+                <th class="py-3 px-3 text-right bg-sky-50">자사몰 DAU누적</th>
+                <th class="py-3 px-3 text-right bg-sky-50">스토어 DAU누적</th>
+                <th class="py-3 px-3 text-right bg-indigo-50 text-indigo-700">MAU 실적(통합)</th>
+                <th class="py-3 px-3 text-right bg-indigo-50">자사몰 MAU</th>
+                <th class="py-3 px-3 text-right bg-indigo-50">스토어 MAU</th>
+                <th class="py-3 px-3 text-center bg-slate-100 font-bold">방문 빈도(통합)</th>
+                <th class="py-3 px-3 text-center bg-slate-100">자사몰 빈도</th>
+                <th class="py-3 px-3 text-center bg-slate-100">스토어 빈도</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y font-mono">
+              ${activeWeeks.map(w => {
+                const m = monthsData.find(item => item.key === w.month);
+                return `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-2.5 px-3 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                    <td class="py-2.5 px-3 text-right font-bold text-sky-600">${w.dauTotal.toLocaleString()}명</td>
+                    <td class="py-2.5 px-3 text-right font-medium bg-sky-50/40">${w.dauCumTotal.toLocaleString()}명</td>
+                    <td class="py-2.5 px-3 text-right bg-sky-50/40 text-slate-600">${w.dauCumMall.toLocaleString()}명</td>
+                    <td class="py-2.5 px-3 text-right bg-sky-50/40 ${w.dauCumStore > 0 ? '' : 'text-slate-400'}">${w.dauCumStore > 0 ? w.dauCumStore.toLocaleString() + '명' : '-'}</td>
+                    <td class="py-2.5 px-3 text-right font-semibold text-indigo-600 bg-indigo-50/40">${m ? m.actualMau.toLocaleString() : 0}명</td>
+                    <td class="py-2.5 px-3 text-right bg-indigo-50/40 text-slate-600">${m ? m.actualMauMall.toLocaleString() : 0}명</td>
+                    <td class="py-2.5 px-3 text-right bg-indigo-50/40 ${m && m.actualMauStore > 0 ? '' : 'text-slate-400'}">${m && m.actualMauStore > 0 ? m.actualMauStore.toLocaleString() + '명' : '-'}</td>
+                    <td class="py-2.5 px-3 text-center font-bold text-indigo-600 bg-slate-100/50">${m ? m.freq.toFixed(2) : '-'}</td>
+                    <td class="py-2.5 px-3 text-center bg-slate-100/50 text-slate-600">${m ? m.freqMall.toFixed(2) : '-'}</td>
+                    <td class="py-2.5 px-3 text-center bg-slate-100/50 text-slate-600">${m && m.freqStore > 0 ? m.freqStore.toFixed(2) : '-'}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          `;
+        }
+
+      } else if (currentMainTab === 'group-ad') {
+        if (currentAdSubTab === 'ad-mall') {
+          table.innerHTML = `
+            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+              <tr>
+                <th class="py-3 px-3">주차 일자</th>
+                <th class="py-3 px-3 text-right">광고비</th>
+                <th class="py-3 px-3 text-right">노출수</th>
+                <th class="py-3 px-3 text-right">클릭수</th>
+                <th class="py-3 px-3 text-right">클릭률 (CTR)</th>
+                <th class="py-3 px-3 text-right">전환율 (CVR)</th>
+                <th class="py-3 px-3 text-right">전환당 비용 (CPA)</th>
+                <th class="py-3 px-3 text-right">전환매출</th>
+                <th class="py-3 px-3 text-center">ROAS</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y font-mono">
+              ${activeWeeks.map(w => {
+                const a = w.adMall;
+                return `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-2.5 px-3 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                    <td class="py-2.5 px-3 text-right font-medium text-rose-600">${a ? a.spend.toLocaleString() : 0}원</td>
+                    <td class="py-2.5 px-3 text-right text-slate-500">${a ? a.impr.toLocaleString() : 0}</td>
+                    <td class="py-2.5 px-3 text-right font-medium">${a ? a.click.toLocaleString() : 0}</td>
+                    <td class="py-2.5 px-3 text-right">${a ? a.ctr.toFixed(1) : 0}%</td>
+                    <td class="py-2.5 px-3 text-right">${a ? a.cvr.toFixed(2) : 0}%</td>
+                    <td class="py-2.5 px-3 text-right">${a ? a.cpa.toLocaleString() : 0}원</td>
+                    <td class="py-2.5 px-3 text-right font-bold text-slate-900">${a ? a.convSales.toLocaleString() : 0}원</td>
+                    <td class="py-2.5 px-3 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold ${a && a.roas >= 250 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}">${a ? a.roas.toFixed(1) : 0}%</span></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          `;
+        } else if (currentAdSubTab === 'ad-store') {
+          table.innerHTML = `
+            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+              <tr>
+                <th class="py-3 px-3">주차 일자</th>
+                <th class="py-3 px-3 text-right">광고비</th>
+                <th class="py-3 px-3 text-right">노출수</th>
+                <th class="py-3 px-3 text-right">클릭수</th>
+                <th class="py-3 px-3 text-right">클릭률 (CTR)</th>
+                <th class="py-3 px-3 text-right">전환율 (CVR)</th>
+                <th class="py-3 px-3 text-right">전환당 비용 (CPA)</th>
+                <th class="py-3 px-3 text-right">전환매출</th>
+                <th class="py-3 px-3 text-center">ROAS</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y font-mono">
+              ${activeWeeks.map(w => {
+                const s = w.adStore;
+                if (!s || s.spend === 0) {
+                  return `
+                    <tr class="text-slate-400">
+                      <td class="py-2.5 px-3 font-semibold">${w.month} (${w.week})</td>
+                      <td colspan="8" class="py-2.5 px-3 text-center text-xs italic">미집행 구간 (6월 이전)</td>
+                    </tr>
+                  `;
+                }
+                return `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-2.5 px-3 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                    <td class="py-2.5 px-3 text-right font-medium text-emerald-600">${s.spend.toLocaleString()}원</td>
+                    <td class="py-2.5 px-3 text-right text-slate-500">${s.impr.toLocaleString()}</td>
+                    <td class="py-2.5 px-3 text-right font-medium">${s.click.toLocaleString()}</td>
+                    <td class="py-2.5 px-3 text-right">${s.ctr.toFixed(2)}%</td>
+                    <td class="py-2.5 px-3 text-right">${s.cvr.toFixed(2)}%</td>
+                    <td class="py-2.5 px-3 text-right">${s.cpa.toLocaleString()}원</td>
+                    <td class="py-2.5 px-3 text-right font-bold text-slate-900">${s.convSales.toLocaleString()}원</td>
+                    <td class="py-2.5 px-3 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold ${s.roas >= 300 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}">${s.roas}%</span></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          `;
+        } else if (currentAdSubTab === 'ad-brandsearch') {
+          table.innerHTML = `
+            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+              <tr>
+                <th class="py-3 px-6">주차 일자</th>
+                <th class="py-3 px-6 text-right">브랜드검색 노출량</th>
+                <th class="py-3 px-6 text-right">브랜드검색 클릭수</th>
+                <th class="py-3 px-6 text-center">클릭률 (CTR)</th>
+                <th class="py-3 px-6 text-center">효율 진단</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y font-mono">
+              ${activeWeeks.map(w => {
+                const b = w.bs;
+                return `
+                  <tr class="hover:bg-slate-50/70">
+                    <td class="py-2.5 px-6 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                    <td class="py-2.5 px-6 text-right font-medium text-slate-900">${b ? b.impr.toLocaleString() : 0}</td>
+                    <td class="py-2.5 px-6 text-right font-bold text-emerald-600">${b ? b.click.toLocaleString() : 0}</td>
+                    <td class="py-2.5 px-6 text-center font-bold text-sky-600">${b ? b.ctr.toFixed(1) : 0}%</td>
+                    <td class="py-2.5 px-6 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-medium ${b && b.ctr >= 30 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${b && b.ctr >= 30 ? '고반응' : '보통'}</span></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          `;
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 6. 차트 렌더링
+    // -------------------------------------------------------------
+    function renderCharts(activeWeeks) {
+      if (!window.Chart) return;
+      const labels = activeWeeks.map(w => `${w.month.replace('2026-', '')}월 ${w.week}`);
+      const chanText = currentChannel === 'mall' ? '자사몰' : (currentChannel === 'store' ? '스마트스토어' : '전체 채널');
+
+      if (currentMainTab === 'group-revenue') {
+        document.getElementById('chartContainerRevenue').classList.remove('hidden');
+        document.getElementById('chartContainerSingle').classList.add('hidden');
+        document.getElementById('chartRevChannelBadge').textContent = chanText;
+        document.getElementById('chartOrdersChannelBadge').textContent = chanText;
+
+        // 그래프 1: 매출
+        let revDatasets = [];
+        if (currentChannel === 'mall') {
+          revDatasets = [{ label: '자사몰 매출', data: activeWeeks.map(w => w.revMall), backgroundColor: 'rgba(99, 102, 241, 0.85)', borderRadius: 4 }];
+        } else if (currentChannel === 'store') {
+          revDatasets = [{ label: '스마트스토어 매출', data: activeWeeks.map(w => w.revStore), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4 }];
+        } else {
+          revDatasets = [
+            { label: '자사몰 매출', data: activeWeeks.map(w => w.revMall), backgroundColor: 'rgba(99, 102, 241, 0.85)', borderRadius: 4 },
+            { label: '스마트스토어 매출', data: activeWeeks.map(w => w.revStore), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4 }
+          ];
+        }
+
+        const ctx1 = document.getElementById('chartRevenueChannels');
+        if (ctx1) {
+          if (chartRevChannels) chartRevChannels.destroy();
+          chartRevChannels = new Chart(ctx1.getContext('2d'), {
+            type: 'bar',
+            data: { labels: labels, datasets: revDatasets },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                y: { grid: { color: '#f1f5f9' }, ticks: { callback: (v) => formatWon(v) } }
+              }
+            }
+          });
+        }
+
+        // 그래프 2: 주문건수와 AOV
+        const ordersData = activeWeeks.map(w => (currentChannel === 'mall' ? w.ordersMall : (currentChannel === 'store' ? w.ordersStore : w.ordersTotal)));
+        const aovData = activeWeeks.map(w => (currentChannel === 'mall' ? w.aovMall : (currentChannel === 'store' ? w.aovStore : w.aovTotal)));
+
+        const ctx2 = document.getElementById('chartRevenueOrdersAov');
+        if (ctx2) {
+          if (chartRevOrdersAov) chartRevOrdersAov.destroy();
+          chartRevOrdersAov = new Chart(ctx2.getContext('2d'), {
+            type: 'bar',
+            data: {
+              labels: labels,
+              datasets: [
+                { type: 'bar', label: `${chanText} 구매 건수 (건)`, data: ordersData, backgroundColor: 'rgba(203, 213, 225, 0.8)', yAxisID: 'y', borderRadius: 4 },
+                { type: 'line', label: `${chanText} AOV (원)`, data: aovData, borderColor: '#f59e0b', borderWidth: 2, yAxisID: 'y1', tension: 0.2, pointRadius: 3 }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                y: { position: 'left', grid: { color: '#f1f5f9' } },
+                y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#f59e0b', callback: (v) => formatWon(v) } }
+              }
+            }
+          });
+        }
+
+      } else {
+        document.getElementById('chartContainerRevenue').classList.add('hidden');
+        document.getElementById('chartContainerSingle').classList.remove('hidden');
+        document.getElementById('singleChartChannelBadge').textContent = chanText;
+
+        const ctxSingle = document.getElementById('singleChartCanvas');
+        if (!ctxSingle) return;
+        if (singleChart) singleChart.destroy();
+
+        let singleDatasets = [];
+        let singleYCallback = (v) => v.toLocaleString();
+        let singleY1Callback = null;
+
+        if (currentMainTab === 'group-traffic') {
+          document.getElementById('singleChartTitle').textContent = `2. 주간 DAU 유입 트렌드 (${chanText})`;
+          document.getElementById('singleChartDesc').textContent = '주차별 일일 활성 사용자 합산(sum DAU) 추이';
+          const dauData = activeWeeks.map(w => (currentChannel === 'mall' ? w.dauMall : (currentChannel === 'store' ? w.dauStore : w.dauTotal)));
+          singleDatasets = [{ type: 'bar', label: `${chanText} 주간 sum DAU`, data: dauData, backgroundColor: 'rgba(14, 165, 233, 0.75)', borderRadius: 4 }];
+          singleYCallback = (v) => `${v.toLocaleString()}명`;
+
+        } else if (currentMainTab === 'group-ad') {
+          if (currentAdSubTab === 'ad-mall') {
+            document.getElementById('singleChartTitle').textContent = '3-1. 자사몰 광고 효율 (광고비 vs ROAS)';
+            singleDatasets = [
+              { type: 'bar', label: '자사몰 광고비', data: activeWeeks.map(w => w.adMall ? w.adMall.spend : 0), backgroundColor: 'rgba(239, 68, 68, 0.7)', yAxisID: 'y', borderRadius: 4 },
+              { type: 'line', label: 'ROAS (%)', data: activeWeeks.map(w => w.adMall ? w.adMall.roas : 0), borderColor: '#f59e0b', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
+            ];
+            singleYCallback = (v) => formatWon(v);
+            singleY1Callback = (v) => `${v}%`;
+          } else if (currentAdSubTab === 'ad-store') {
+            document.getElementById('singleChartTitle').textContent = '3-2. 스마트스토어 광고 효율 (광고비 vs ROAS)';
+            singleDatasets = [
+              { type: 'bar', label: '스토어 광고비', data: activeWeeks.map(w => w.adStore ? w.adStore.spend : 0), backgroundColor: 'rgba(16, 185, 129, 0.7)', yAxisID: 'y', borderRadius: 4 },
+              { type: 'line', label: '스토어 ROAS (%)', data: activeWeeks.map(w => w.adStore ? w.adStore.roas : 0), borderColor: '#6366f1', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
+            ];
+            singleYCallback = (v) => formatWon(v);
+            singleY1Callback = (v) => `${v}%`;
+          } else if (currentAdSubTab === 'ad-brandsearch') {
+            document.getElementById('singleChartTitle').textContent = '3-3. 네이버 브랜드 검색 (노출량 vs CTR)';
+            singleDatasets = [
+              { type: 'bar', label: '노출량', data: activeWeeks.map(w => w.bs ? w.bs.impr : 0), backgroundColor: 'rgba(3, 199, 90, 0.75)', yAxisID: 'y', borderRadius: 4 },
+              { type: 'line', label: '클릭률 (CTR, %)', data: activeWeeks.map(w => w.bs ? w.bs.ctr : 0), borderColor: '#0284c7', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
+            ];
+            singleYCallback = (v) => `${v.toLocaleString()}`;
+            singleY1Callback = (v) => `${v}%`;
+          }
+        }
+
+        const scales = {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { grid: { color: '#f1f5f9' }, ticks: { callback: singleYCallback } }
+        };
+        if (singleY1Callback) {
+          scales.y1 = { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#f59e0b', callback: singleY1Callback } };
+        }
+
+        singleChart = new Chart(ctxSingle.getContext('2d'), {
+          type: 'bar',
+          data: { labels: labels, datasets: singleDatasets },
+          options: { responsive: true, maintainAspectRatio: false, scales: scales }
+        });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 7. 마스터 렌더 함수
+    // -------------------------------------------------------------
+    function renderDashboard() {
+      updateTopSummary();
+      const activeWeeks = (currentMonth === 'all') ? weeks : weeks.filter(w => w.month === currentMonth);
+      if (currentMainTab === 'group-ad') {
+        document.getElementById('adSubTabContainer').classList.remove('hidden');
+      } else {
+        document.getElementById('adSubTabContainer').classList.add('hidden');
+      }
+      renderCharts(activeWeeks);
+      renderTables(activeWeeks);
+    }
+
+    // -------------------------------------------------------------
+    // 8. 인터랙션 이벤트 핸들러
+    // -------------------------------------------------------------
+    function setChannelFilter(channel) {
+      currentChannel = channel;
+      ['total', 'mall', 'store'].forEach(c => {
+        const btn = document.getElementById(`btn-chan-${c}`);
+        if (c === channel) {
+          btn.className = 'px-3 py-1.5 rounded-md bg-white text-indigo-600 shadow-sm font-bold transition';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-md text-slate-500 hover:text-slate-800 font-medium transition';
+        }
+      });
+      if (currentChannel === 'mall') switchAdSubTab('ad-mall', false);
+      else if (currentChannel === 'store') switchAdSubTab('ad-store', false);
+      renderDashboard();
+    }
+
+    function switchMainTab(tab) {
+      currentMainTab = tab;
+      document.querySelectorAll('.main-tab-btn').forEach(btn => {
+        btn.classList.remove('border-indigo-600', 'text-indigo-600', 'font-bold');
+        btn.classList.add('border-transparent', 'text-slate-500', 'font-medium');
+      });
+      const active = document.getElementById(`tab-${tab}`);
+      active.classList.add('border-indigo-600', 'text-indigo-600', 'font-bold');
+      active.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
+      renderDashboard();
+    }
+
+    function switchAdSubTab(subTab, shouldRender = true) {
+      currentAdSubTab = subTab;
+      document.querySelectorAll('.ad-sub-btn').forEach(btn => {
+        btn.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm', 'font-bold');
+        btn.classList.add('text-slate-500', 'font-medium');
+      });
+      const active = document.getElementById(`subtab-${subTab}`);
+      if (active) {
+        active.classList.add('bg-white', 'text-indigo-600', 'shadow-sm', 'font-bold');
+        active.classList.remove('text-slate-500', 'font-medium');
+      }
+      if (shouldRender) renderDashboard();
+    }
+
+    function onFilterChange() {
+      currentMonth = document.getElementById('monthFilter').value;
+      renderDashboard();
+    }
+
+    // -------------------------------------------------------------
+    // 초기 로딩 및 1분 주기 자동 백그라운드 재동기화
+    // -------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      renderDashboard();
+      fetchLiveGoogleSheet(false);
+      // 1분(60초)마다 시트 데이터 자동 동기화
+      setInterval(() => fetchLiveGoogleSheet(false), 60000);
+    });
+  </script>
+</body>
+</html>
