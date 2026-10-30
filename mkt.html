@@ -27,7 +27,17 @@
       </div>
 
       <!-- 상단 컨트롤 툴바 -->
-      <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <!-- [신규] 보기 모드 (주 단위 vs 월 누계) 토글 -->
+        <div class="inline-flex p-1 bg-indigo-50/80 rounded-lg border border-indigo-200 text-xs font-semibold">
+          <button onclick="setViewMode('week')" id="btn-view-week" class="px-2.5 py-1.5 rounded-md bg-white text-indigo-700 shadow-xs transition flex items-center gap-1">
+            <span>📅 주 단위</span>
+          </button>
+          <button onclick="setViewMode('month')" id="btn-view-month" class="px-2.5 py-1.5 rounded-md text-slate-500 hover:text-slate-800 transition flex items-center gap-1">
+            <span>📊 월 누계</span>
+          </button>
+        </div>
+
         <!-- 채널 필터 토글 -->
         <div class="inline-flex p-1 bg-slate-100 rounded-lg border border-slate-200 text-xs font-semibold">
           <button onclick="setChannelFilter('total')" id="btn-chan-total" class="px-3 py-1.5 rounded-md bg-white text-indigo-600 shadow-sm transition">전체</button>
@@ -54,7 +64,7 @@
           <span class="hidden md:inline">시트 동기화</span>
         </button>
 
-        <!-- 수동 입력 / 설정 모달 열기 -->
+        <!-- 수동 모달 열기 -->
         <button onclick="openSyncModal()" title="시트 설정 및 수동 붙여넣기" class="p-2 text-slate-500 hover:text-indigo-600 rounded-lg border border-slate-200 hover:bg-slate-50 transition">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         </button>
@@ -66,7 +76,6 @@
 
     <!-- 1. TOP SUMMARY: 4 CARDS -->
     <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <!-- 1. 매출 요약 -->
       <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-indigo-600 uppercase tracking-wide flex items-center gap-1">
@@ -83,7 +92,6 @@
         </div>
       </div>
 
-      <!-- 2. 구매 전환율 -->
       <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-rose-600 uppercase tracking-wide">2. 구매 전환율 (CVR)</span>
@@ -97,7 +105,6 @@
         </div>
       </div>
 
-      <!-- 3. 유입자수 요약 -->
       <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-emerald-600 uppercase tracking-wide">3. 유입자수 요약</span>
@@ -111,7 +118,6 @@
         </div>
       </div>
 
-      <!-- 4. 광고 효율 요약 -->
       <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-amber-600 uppercase tracking-wide">4. 광고 효율 요약</span>
@@ -121,7 +127,7 @@
         <div class="text-xs text-slate-500 mt-1">집행 광고비: <span id="summaryTotalSpend" class="font-bold text-slate-800">0원</span></div>
         <div class="mt-3 pt-2.5 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between truncate">
           <span>전환매출: <b id="summaryConvSales" class="text-slate-700 font-bold">0원</b></span>
-          <span id="summaryRoasChannelLabel" class="text-slate-400 text-[10px]">전체합산</span>
+          <span id="summaryRoasChannelLabel" class="text-slate-400 text-[10px]">통합합산</span>
         </div>
       </div>
     </section>
@@ -136,18 +142,20 @@
           2. 유입자수 (DAU · DAU 누적 · MAU · 빈도 세분화)
         </button>
         <button onclick="switchMainTab('group-ad')" id="tab-group-ad" class="main-tab-btn pb-3 px-2 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700">
-          3. 광고 효율 (자사몰 · 스토어 · 브검)
+          3. 광고 효율 (통합 · 자사몰 · 스토어 · 브검)
         </button>
       </nav>
-      <!-- 실시간 동기화 상태 뱃지 -->
       <span id="syncStatusBadge" class="text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 hidden sm:inline-block">
         ● 데이터 가동 중
       </span>
     </div>
 
-    <!-- 광고 효율 전용 서브탭 -->
+    <!-- [신규] 광고 효율 서브탭: 통합 광고 효율 추가 -->
     <div id="adSubTabContainer" class="hidden flex items-center space-x-2 bg-slate-100 p-1.5 rounded-xl w-fit">
-      <button onclick="switchAdSubTab('ad-mall')" id="subtab-ad-mall" class="ad-sub-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-indigo-600 shadow-sm">
+      <button onclick="switchAdSubTab('ad-total')" id="subtab-ad-total" class="ad-sub-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-indigo-600 shadow-sm">
+        ✨ 통합 광고 효율
+      </button>
+      <button onclick="switchAdSubTab('ad-mall')" id="subtab-ad-mall" class="ad-sub-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-700">
         자사몰 광고 효율
       </button>
       <button onclick="switchAdSubTab('ad-store')" id="subtab-ad-store" class="ad-sub-btn px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-700">
@@ -164,8 +172,8 @@
       <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div class="pb-3 border-b border-slate-100 mb-3 flex justify-between items-center">
           <div>
-            <h2 class="text-sm font-bold text-slate-800">주차별 채널 매출 (자사몰 매출 vs 스마트스토어 매출)</h2>
-            <p class="text-xs text-slate-400">단위: 원</p>
+            <h2 id="chartRevTitle" class="text-sm font-bold text-slate-800">주차별 채널 매출 (자사몰 매출 vs 스마트스토어 매출)</h2>
+            <p id="chartRevDesc" class="text-xs text-slate-400">단위: 원</p>
           </div>
           <span id="chartRevChannelBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-600">전체 채널</span>
         </div>
@@ -177,8 +185,8 @@
       <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <div class="pb-3 border-b border-slate-100 mb-3 flex justify-between items-center">
           <div>
-            <h2 class="text-sm font-bold text-slate-800">주차별 주문 건수 & 평균 객단가 (구매 건수와 AOV)</h2>
-            <p class="text-xs text-slate-400">좌측 축: 구매 건수(건) / 우측 축: AOV 객단가(원)</p>
+            <h2 id="chartOrdersTitle" class="text-sm font-bold text-slate-800">주차별 주문 건수 & 평균 객단가 (구매 건수와 AOV)</h2>
+            <p id="chartOrdersDesc" class="text-xs text-slate-400">좌측 축: 구매 건수(건) / 우측 축: AOV 객단가(원)</p>
           </div>
           <span id="chartOrdersChannelBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-600">전체 채널</span>
         </div>
@@ -193,7 +201,7 @@
       <div class="pb-3 border-b border-slate-100 mb-3 flex justify-between items-center">
         <div>
           <h2 id="singleChartTitle" class="text-sm font-bold text-slate-800">트렌드 차트</h2>
-          <p id="singleChartDesc" class="text-xs text-slate-400">주간 상세 지표 추이</p>
+          <p id="singleChartDesc" class="text-xs text-slate-400">상세 지표 추이</p>
         </div>
         <span id="singleChartChannelBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-sky-50 text-sky-600">전체</span>
       </div>
@@ -254,7 +262,6 @@
     상품전략부문 KPI 종합 모니터링 시스템 &bull; 실시간 데이터베이스 연동
   </footer>
 
-  <!-- 완전 무결 실시간 동기화 스크립트 -->
   <script>
     const LIVE_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSih5zhvkZEfWNBRSoEb9FfYI_xV7csr_HWNTJcqy0AheSzjEofC2ZDC4Qt0JbwnmbJtG-skwKXn_u6/pub?gid=996099765&single=true&output=csv";
 
@@ -308,9 +315,10 @@
     ];
 
     let currentMainTab = 'group-revenue';
-    let currentAdSubTab = 'ad-mall';
+    let currentAdSubTab = 'ad-total'; // 기본값: 통합 광고 효율
     let currentMonth = 'all';
     let currentChannel = 'total';
+    let currentViewMode = 'week'; // 'week' (주 단위) or 'month' (월 누계)
 
     let chartRevChannels = null;
     let chartRevOrdersAov = null;
@@ -323,7 +331,84 @@
     }
 
     // -------------------------------------------------------------
-    // 2. 구글 시트 6단 파서 (버그 완벽 수정)
+    // 월별 누계 광고 효율 지표 생성 함수
+    // -------------------------------------------------------------
+    function getMonthlyAdData(mKey) {
+      const mWeeks = weeks.filter(w => w.month === mKey);
+      let mallSpend = 0, mallConv = 0, mallImpr = 0, mallClick = 0, mallOrders = 0;
+      let storeSpend = 0, storeConv = 0, storeImpr = 0, storeClick = 0, storeOrders = 0;
+      let bsImpr = 0, bsClick = 0;
+
+      mWeeks.forEach(w => {
+        if (w.adMall) {
+          mallSpend += w.adMall.spend;
+          mallConv += w.adMall.convSales;
+          mallImpr += w.adMall.impr;
+          mallClick += w.adMall.click;
+          mallOrders += (w.adMall.click * (w.adMall.cvr || 0) / 100);
+        }
+        if (w.adStore) {
+          storeSpend += w.adStore.spend;
+          storeConv += w.adStore.convSales;
+          storeImpr += w.adStore.impr;
+          storeClick += w.adStore.click;
+          storeOrders += (w.adStore.click * (w.adStore.cvr || 0) / 100);
+        }
+        if (w.bs) {
+          bsImpr += w.bs.impr;
+          bsClick += w.bs.click;
+        }
+      });
+
+      const totSpend = mallSpend + storeSpend;
+      const totConv = mallConv + storeConv;
+      const totImpr = mallImpr + storeImpr + bsImpr;
+      const totClick = mallClick + storeClick + bsClick;
+      const totOrders = mallOrders + storeOrders;
+
+      return {
+        month: mKey,
+        label: mKey.replace('2026-', '') + '월',
+        total: {
+          spend: totSpend,
+          convSales: totConv,
+          roas: totSpend > 0 ? (totConv / totSpend) * 100 : 0,
+          impr: totImpr,
+          click: totClick,
+          ctr: totImpr > 0 ? (totClick / totImpr) * 100 : 0,
+          cvr: totClick > 0 ? (totOrders / totClick) * 100 : 0,
+          cpa: totOrders > 0 ? (totSpend / totOrders) : 0
+        },
+        mall: {
+          spend: mallSpend,
+          convSales: mallConv,
+          roas: mallSpend > 0 ? (mallConv / mallSpend) * 100 : 0,
+          impr: mallImpr,
+          click: mallClick,
+          ctr: mallImpr > 0 ? (mallClick / mallImpr) * 100 : 0,
+          cvr: mallClick > 0 ? (mallOrders / mallClick) * 100 : 0,
+          cpa: mallOrders > 0 ? (mallSpend / mallOrders) : 0
+        },
+        store: {
+          spend: storeSpend,
+          convSales: storeConv,
+          roas: storeSpend > 0 ? (storeConv / storeSpend) * 100 : 0,
+          impr: storeImpr,
+          click: storeClick,
+          ctr: storeImpr > 0 ? (storeClick / storeImpr) * 100 : 0,
+          cvr: storeClick > 0 ? (storeOrders / storeClick) * 100 : 0,
+          cpa: storeOrders > 0 ? (storeSpend / storeOrders) : 0
+        },
+        bs: {
+          impr: bsImpr,
+          click: bsClick,
+          ctr: bsImpr > 0 ? (bsClick / bsImpr) * 100 : 0
+        }
+      };
+    }
+
+    // -------------------------------------------------------------
+    // CSV 파서
     // -------------------------------------------------------------
     function parseCSV(text) {
       const rows = [];
@@ -371,7 +456,6 @@
       const matrix = parseCSV(csvText);
       if (matrix.length < 20) throw new Error('시트 데이터가 유효하지 않습니다.');
 
-      // 1. 헤더 행(월, 일자) 찾기
       let monthRowIdx = matrix.findIndex(r => r.some(c => clean(c).includes('2026-')));
       if (monthRowIdx === -1) monthRowIdx = 1;
       let dateRowIdx = monthRowIdx + 1;
@@ -392,7 +476,6 @@
         }
       }
 
-      // 안전한 섹션별 행 탐색 함수
       function findSection(keyword, startRow = 0) {
         const k = clean(keyword);
         for (let i = startRow; i < matrix.length; i++) {
@@ -414,7 +497,6 @@
         return -1;
       }
 
-      // 섹션별 행 위치 정확한 매핑
       const s_rev = findSection('D2C매출', 0);
       const r_revTarget = findSubRow('월목표', s_rev, s_rev + 5);
       const r_revTargetMall = r_revTarget + 1;
@@ -449,12 +531,10 @@
       const r_ordActualMonth = findSubRow('월실적누계', r_ord_start, r_ord_start + 6);
       const r_ordActualMonthMall = r_ordActualMonth + 1;
       const r_ordActualMonthStore = r_ordActualMonth + 2;
-      // [버그 수정 완료]: r_ord_actualMonth -> r_ordActualMonth
       const r_ordWeekly = findSubRow('Actual(주단위)', r_ordActualMonth, r_ordActualMonth + 6);
       const r_ordWeeklyMall = r_ordWeekly + 1;
       const r_ordWeeklyStore = r_ordWeekly + 2;
 
-      // [버그 수정 완료]: r_ord_actualMonth -> r_ordActualMonth
       const r_aov = findSubRow('구매당매출', r_ordActualMonth, r_ordActualMonth + 20);
       const r_aovTarget = r_aov;
       const r_aovActualMonth = findSubRow('월실적누계', r_aov, r_aov + 4);
@@ -489,7 +569,6 @@
       const r_adStoreSales = r_adStoreSpend + 6;
       const r_adStoreRoas = r_adStoreSpend + 7;
 
-      // 1. 월별 데이터 생성
       const distinctMonths = [...new Set(colMap.map(c => c.month))].filter(m => m && m.startsWith('2026-'));
       const parsedMonths = [];
 
@@ -539,7 +618,6 @@
         });
       });
 
-      // 2. 주차별 데이터 생성
       const parsedWeeks = [];
       let curMonthDauCumTotal = 0, curMonthDauCumMall = 0, curMonthDauCumStore = 0;
       let lastMonth = '';
@@ -560,7 +638,6 @@
         const revMall = parseNum(matrix[r_revWeeklyMall]?.[c]);
         const revStore = parseNum(matrix[r_revWeeklyStore]?.[c]);
 
-        // 실적이 완전히 0인 미래 주차 제외
         if (revTot === 0 && parseNum(matrix[r_dauWeekly]?.[c]) === 0 && (mKey === '2026-11' || mKey === '2026-12')) {
           return;
         }
@@ -622,7 +699,7 @@
     }
 
     // -------------------------------------------------------------
-    // 3. 브라우저 실시간 Fetcher (직접 Fetch 1순위 적용)
+    // 실시간 구글 시트 통신
     // -------------------------------------------------------------
     async function fetchLiveGoogleSheet(isManual = false) {
       const statusBadge = document.getElementById('syncStatusBadge');
@@ -633,7 +710,7 @@
 
       const directUrl = `${LIVE_CSV_URL}&_nocache=${Date.now()}`;
       const endpoints = [
-        directUrl, // 1순위: 직접 Fetch (구글 웹게시는 브라우저에서 직접 읽기 지원)
+        directUrl,
         `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`,
         `https://corsproxy.io/?${encodeURIComponent(directUrl)}`,
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(directUrl)}`
@@ -657,7 +734,7 @@
             }
           }
         } catch (e) {
-          console.warn('연결 시도 중...', gw, e);
+          console.warn('프록시 시도 중...', gw, e);
         }
       }
 
@@ -669,12 +746,9 @@
         closeSyncModal();
         if (isManual) alert('구글 시트의 최신 수치가 성공적으로 반영되었습니다.');
       } else {
-        statusBadge.textContent = '● 기본 데이터 가동 중 (연동 시도 실패)';
+        statusBadge.textContent = '● 기본 데이터 가동 중 (연동 실패)';
         statusBadge.className = 'text-[11px] font-mono text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300';
-        if (isManual) {
-          alert('구글 시트 자동 호출에 실패했습니다. 모달 창에서 시트 내용을 직접 복사/붙여넣기 하실 수 있습니다.');
-          openSyncModal();
-        }
+        if (isManual) openSyncModal();
       }
 
       renderDashboard();
@@ -682,18 +756,13 @@
 
     function applyManualCsv() {
       const text = document.getElementById('csvDirectInput').value.trim();
-      if (!text) {
-        alert('붙여넣을 CSV 내용이 없습니다.');
-        return;
-      }
+      if (!text) { alert('붙여넣을 내용이 없습니다.'); return; }
       try {
         const parsed = parseSheetData(text);
         monthsData = parsed.monthsData;
         weeks = parsed.weeks;
-        document.getElementById('syncStatusBadge').textContent = '● 수동 붙여넣기 데이터 적용 완료 (' + new Date().toLocaleTimeString('ko-KR') + ')';
-        document.getElementById('syncStatusBadge').className = 'text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300';
+        document.getElementById('syncStatusBadge').textContent = '● 수동 데이터 적용 완료 (' + new Date().toLocaleTimeString('ko-KR') + ')';
         closeSyncModal();
-        alert('붙여넣은 구글 시트 데이터가 대시보드에 성공적으로 반영되었습니다.');
         renderDashboard();
       } catch (err) {
         alert('CSV 파싱 오류: ' + err.message);
@@ -709,7 +778,7 @@
     }
 
     // -------------------------------------------------------------
-    // 4. 상단 요약 카드 계산
+    // 상단 4개 요약 카드 업데이트
     // -------------------------------------------------------------
     function updateTopSummary() {
       const activeMonths = (currentMonth === 'all') ? monthsData : monthsData.filter(m => m.key === currentMonth);
@@ -747,7 +816,7 @@
       document.getElementById('summaryOrders').textContent = `${ordersCount.toLocaleString()}건`;
       document.getElementById('summaryAov').textContent = `${Math.round(aovVal).toLocaleString()}원`;
 
-      // 2. 구매전환율 (구매건수 / DAU 누계)
+      // 2. 구매전환율
       const cvrVal = dauSumVal > 0 ? (ordersCount / dauSumVal) * 100 : 0;
       document.getElementById('summaryCvrVal').textContent = `${cvrVal.toFixed(2)}%`;
       document.getElementById('summaryCvrOrders').textContent = `${ordersCount.toLocaleString()}건`;
@@ -764,7 +833,7 @@
       document.getElementById('summaryDauSum').textContent = `${dauSumVal.toLocaleString()}명`;
       document.getElementById('summaryFreq').textContent = avgFreq.toFixed(2);
 
-      // 4. 광고효율
+      // 4. 광고효율 (통합/채널)
       let totSpend = 0, totConvSales = 0;
       activeWeeks.forEach(w => {
         if (currentChannel === 'mall' || currentChannel === 'total') {
@@ -785,76 +854,63 @@
     }
 
     // -------------------------------------------------------------
-    // 5. 테이블 렌더링
+    // 테이블 렌더링 (주 단위 / 월 누계 완벽 대응)
     // -------------------------------------------------------------
-    function renderTables(activeWeeks) {
+    function renderTables(activeWeeks, activeMonths) {
       const table = document.getElementById('primaryDataTable');
       table.innerHTML = '';
+      const chanText = currentChannel === 'mall' ? '자사몰' : (currentChannel === 'store' ? '스마트스토어' : '전체 채널');
+      const isMonthMode = (currentViewMode === 'month');
 
+      // 1. 매출 테이블
       if (currentMainTab === 'group-revenue') {
-        const chanText = currentChannel === 'mall' ? '자사몰 전용' : (currentChannel === 'store' ? '스마트스토어 전용' : '전체 채널');
-        document.getElementById('tableTitle').textContent = `1. 매출 실적 테이블 (${chanText})`;
-        document.getElementById('tableDesc').textContent = `선택된 채널(${chanText})의 주차별 매출, 목표 대비 달성률, 주문건수 및 AOV`;
+        document.getElementById('tableTitle').textContent = `1. 매출 실적 테이블 (${chanText} - ${isMonthMode ? '📊 월 누계' : '📅 주 단위'})`;
+        document.getElementById('tableDesc').textContent = isMonthMode 
+          ? `선택 기간의 월별 목표 대비 누계 매출 실적, 구매건수, AOV 종합 분석`
+          : `선택된 채널(${chanText})의 주차별 상세 매출 추이 및 주문 지표`;
 
-        if (currentChannel === 'mall') {
+        if (isMonthMode) {
+          // 월 누계 뷰
           table.innerHTML = `
             <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
               <tr>
-                <th class="py-3 px-4">주차 일자</th>
-                <th class="py-3 px-4 text-right">자사몰 매출</th>
-                <th class="py-3 px-4 text-right">자사몰 주간 목표</th>
+                <th class="py-3 px-4">월 (누계)</th>
+                <th class="py-3 px-4 text-right">월 실적 매출</th>
+                <th class="py-3 px-4 text-right">월 목표 매출</th>
                 <th class="py-3 px-4 text-center">매출 달성률</th>
-                <th class="py-3 px-4 text-right">자사몰 구매건수</th>
-                <th class="py-3 px-4 text-right">자사몰 AOV</th>
+                <th class="py-3 px-4 text-right bg-indigo-50/50">구매건수(실적)</th>
+                <th class="py-3 px-4 text-right bg-indigo-50/50">구매건수(목표)</th>
+                <th class="py-3 px-4 text-right bg-amber-50/50">객단가 AOV(실적)</th>
+                <th class="py-3 px-4 text-right bg-amber-50/50">AOV(목표)</th>
               </tr>
             </thead>
             <tbody class="divide-y font-mono">
-              ${activeWeeks.map(w => {
-                const rate = w.targetRevMall > 0 ? (w.revMall / w.targetRevMall) * 100 : 0;
+              ${activeMonths.map(m => {
+                const actRev = currentChannel === 'mall' ? m.actualRevMall : (currentChannel === 'store' ? m.actualRevStore : m.actualRev);
+                const tgtRev = currentChannel === 'mall' ? m.targetRevMall : (currentChannel === 'store' ? m.targetRevStore : m.targetRev);
+                const rate = tgtRev > 0 ? (actRev / tgtRev) * 100 : 0;
+                const actOrd = currentChannel === 'mall' ? m.actualOrdersMall : (currentChannel === 'store' ? m.actualOrdersStore : m.actualOrders);
+                const tgtOrd = currentChannel === 'mall' ? m.targetOrdersMall : (currentChannel === 'store' ? m.targetOrdersStore : m.targetOrders);
+                const actAov = currentChannel === 'mall' ? m.actualAovMall : (currentChannel === 'store' ? m.actualAovStore : m.actualAov);
+                const tgtAov = currentChannel === 'mall' ? m.targetAovMall : (currentChannel === 'store' ? m.targetAovStore : m.targetAov);
+
                 return `
                   <tr class="hover:bg-slate-50/70">
-                    <td class="py-2.5 px-4 font-semibold text-slate-800">${w.month} (${w.week})</td>
-                    <td class="py-2.5 px-4 text-right font-bold text-indigo-600">${w.revMall.toLocaleString()}원</td>
-                    <td class="py-2.5 px-4 text-right text-slate-400">${Math.round(w.targetRevMall).toLocaleString()}원</td>
-                    <td class="py-2.5 px-4 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] ${badgeStyle(rate)}">${rate.toFixed(1)}%</span></td>
-                    <td class="py-2.5 px-4 text-right font-semibold text-slate-800">${w.ordersMall}건</td>
-                    <td class="py-2.5 px-4 text-right text-amber-600 font-semibold">${w.aovMall.toLocaleString()}원</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          `;
-        } else if (currentChannel === 'store') {
-          table.innerHTML = `
-            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
-              <tr>
-                <th class="py-3 px-4">주차 일자</th>
-                <th class="py-3 px-4 text-right">스마트스토어 매출</th>
-                <th class="py-3 px-4 text-right">스토어 주간 목표</th>
-                <th class="py-3 px-4 text-center">매출 달성률</th>
-                <th class="py-3 px-4 text-right">스토어 구매건수</th>
-                <th class="py-3 px-4 text-right">스토어 AOV</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y font-mono">
-              ${activeWeeks.map(w => {
-                const rate = w.targetRevStore > 0 ? (w.revStore / w.targetRevStore) * 100 : 0;
-                return `
-                  <tr class="hover:bg-slate-50/70">
-                    <td class="py-2.5 px-4 font-semibold text-slate-800">${w.month} (${w.week})</td>
-                    <td class="py-2.5 px-4 text-right font-bold text-emerald-600">${w.revStore > 0 ? w.revStore.toLocaleString() + '원' : '-'}</td>
-                    <td class="py-2.5 px-4 text-right text-slate-400">${w.targetRevStore > 0 ? Math.round(w.targetRevStore).toLocaleString() + '원' : '-'}</td>
-                    <td class="py-2.5 px-4 text-center">
-                      ${w.targetRevStore > 0 ? `<span class="inline-block px-2 py-0.5 rounded text-[11px] ${badgeStyle(rate)}">${rate.toFixed(1)}%</span>` : '<span class="text-slate-400">-</span>'}
-                    </td>
-                    <td class="py-2.5 px-4 text-right font-semibold text-slate-800">${w.ordersStore > 0 ? w.ordersStore + '건' : '-'}</td>
-                    <td class="py-2.5 px-4 text-right text-amber-600 font-semibold">${w.aovStore > 0 ? w.aovStore.toLocaleString() + '원' : '-'}</td>
+                    <td class="py-3 px-4 font-bold text-slate-900">${m.label} 누계</td>
+                    <td class="py-3 px-4 text-right font-black text-indigo-600">${actRev.toLocaleString()}원</td>
+                    <td class="py-3 px-4 text-right text-slate-500">${tgtRev > 0 ? tgtRev.toLocaleString() + '원' : '-'}</td>
+                    <td class="py-3 px-4 text-center"><span class="inline-block px-2.5 py-0.5 rounded text-[11px] ${badgeStyle(rate)}">${rate.toFixed(1)}%</span></td>
+                    <td class="py-3 px-4 text-right font-bold text-slate-800 bg-indigo-50/20">${actOrd.toLocaleString()}건</td>
+                    <td class="py-3 px-4 text-right text-slate-400 bg-indigo-50/20">${tgtOrd > 0 ? tgtOrd + '건' : '-'}</td>
+                    <td class="py-3 px-4 text-right font-bold text-amber-600 bg-amber-50/20">${Math.round(actAov).toLocaleString()}원</td>
+                    <td class="py-3 px-4 text-right text-slate-400 bg-amber-50/20">${tgtAov > 0 ? Math.round(tgtAov).toLocaleString() + '원' : '-'}</td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
           `;
         } else {
+          // 주 단위 뷰 (+ 하단 총계 요약행)
           table.innerHTML = `
             <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
               <tr>
@@ -862,7 +918,7 @@
                 <th class="py-3 px-3 text-right">총매출</th>
                 <th class="py-3 px-3 text-right">자사몰 매출</th>
                 <th class="py-3 px-3 text-right">스토어 매출</th>
-                <th class="py-3 px-3 text-center">달성률</th>
+                <th class="py-3 px-3 text-center">주간 달성률</th>
                 <th class="py-3 px-3 text-right bg-indigo-50 text-indigo-700">구매건수(통합)</th>
                 <th class="py-3 px-3 text-right bg-indigo-50">자사몰 건수</th>
                 <th class="py-3 px-3 text-right bg-indigo-50">스토어 건수</th>
@@ -894,58 +950,41 @@
           `;
         }
 
+      // 2. 유입자수 테이블
       } else if (currentMainTab === 'group-traffic') {
-        const chanText = currentChannel === 'mall' ? '자사몰 전용' : (currentChannel === 'store' ? '스마트스토어 전용' : '전체 채널');
-        document.getElementById('tableTitle').textContent = `2. 유입자수 테이블 (${chanText})`;
-        document.getElementById('tableDesc').textContent = `선택된 채널(${chanText})의 DAU, DAU 누적, MAU 실적 및 방문 빈도`;
+        document.getElementById('tableTitle').textContent = `2. 유입자수 실적 테이블 (${chanText} - ${isMonthMode ? '📊 월 누계' : '📅 주 단위'})`;
+        document.getElementById('tableDesc').textContent = isMonthMode 
+          ? `월별 목표 MAU 대비 실적, DAU 월 누계 및 방문 빈도 분석` 
+          : `주차별 일일 활성 사용자 합산(sum DAU) 및 누적 방문자 추이`;
 
-        if (currentChannel === 'mall') {
+        if (isMonthMode) {
           table.innerHTML = `
             <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
               <tr>
-                <th class="py-3 px-4">주차 일자</th>
-                <th class="py-3 px-4 text-right">자사몰 주간 sum DAU</th>
-                <th class="py-3 px-4 text-right">자사몰 DAU 누적</th>
-                <th class="py-3 px-4 text-right">자사몰 MAU 실적</th>
-                <th class="py-3 px-4 text-center">자사몰 방문 빈도</th>
+                <th class="py-3 px-4">월 (누계)</th>
+                <th class="py-3 px-4 text-right">월 실적 MAU</th>
+                <th class="py-3 px-4 text-right">월 목표 MAU</th>
+                <th class="py-3 px-4 text-center">MAU 달성률</th>
+                <th class="py-3 px-4 text-right">월 sum DAU 누계</th>
+                <th class="py-3 px-4 text-center">월간 방문 빈도</th>
               </tr>
             </thead>
             <tbody class="divide-y font-mono">
-              ${activeWeeks.map(w => {
-                const m = monthsData.find(item => item.key === w.month);
+              ${activeMonths.map(m => {
+                const actMau = currentChannel === 'mall' ? m.actualMauMall : (currentChannel === 'store' ? m.actualMauStore : m.actualMau);
+                const tgtMau = currentChannel === 'mall' ? m.targetMauMall : (currentChannel === 'store' ? m.targetMauStore : m.targetMau);
+                const rate = tgtMau > 0 ? (actMau / tgtMau) * 100 : 0;
+                const dSum = currentChannel === 'mall' ? m.dauSumMall : (currentChannel === 'store' ? m.dauSumStore : m.dauSum);
+                const fVal = currentChannel === 'mall' ? m.freqMall : (currentChannel === 'store' ? m.freqStore : m.freq);
+
                 return `
                   <tr class="hover:bg-slate-50/70">
-                    <td class="py-2.5 px-4 font-semibold text-slate-800">${w.month} (${w.week})</td>
-                    <td class="py-2.5 px-4 text-right font-bold text-sky-600">${w.dauMall.toLocaleString()}명</td>
-                    <td class="py-2.5 px-4 text-right font-semibold text-slate-800">${w.dauCumMall.toLocaleString()}명</td>
-                    <td class="py-2.5 px-4 text-right font-semibold text-indigo-600">${m ? m.actualMauMall.toLocaleString() : 0}명</td>
-                    <td class="py-2.5 px-4 text-center font-bold text-indigo-600">${m ? m.freqMall.toFixed(2) : '-'}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          `;
-        } else if (currentChannel === 'store') {
-          table.innerHTML = `
-            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
-              <tr>
-                <th class="py-3 px-4">주차 일자</th>
-                <th class="py-3 px-4 text-right">스토어 주간 sum DAU</th>
-                <th class="py-3 px-4 text-right">스토어 DAU 누적</th>
-                <th class="py-3 px-4 text-right">스토어 MAU 실적</th>
-                <th class="py-3 px-4 text-center">스토어 방문 빈도</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y font-mono">
-              ${activeWeeks.map(w => {
-                const m = monthsData.find(item => item.key === w.month);
-                return `
-                  <tr class="hover:bg-slate-50/70">
-                    <td class="py-2.5 px-4 font-semibold text-slate-800">${w.month} (${w.week})</td>
-                    <td class="py-2.5 px-4 text-right font-bold text-sky-600">${w.dauStore > 0 ? w.dauStore.toLocaleString() + '명' : '-'}</td>
-                    <td class="py-2.5 px-4 text-right font-semibold text-slate-800">${w.dauCumStore > 0 ? w.dauCumStore.toLocaleString() + '명' : '-'}</td>
-                    <td class="py-2.5 px-4 text-right font-semibold text-indigo-600">${m && m.actualMauStore > 0 ? m.actualMauStore.toLocaleString() + '명' : '-'}</td>
-                    <td class="py-2.5 px-4 text-center font-bold text-indigo-600">${m && m.freqStore > 0 ? m.freqStore.toFixed(2) : '-'}</td>
+                    <td class="py-3 px-4 font-bold text-slate-900">${m.label} 누계</td>
+                    <td class="py-3 px-4 text-right font-black text-sky-600">${actMau.toLocaleString()}명</td>
+                    <td class="py-3 px-4 text-right text-slate-500">${tgtMau > 0 ? Math.round(tgtMau).toLocaleString() + '명' : '-'}</td>
+                    <td class="py-3 px-4 text-center"><span class="inline-block px-2.5 py-0.5 rounded text-[11px] ${badgeStyle(rate)}">${rate.toFixed(1)}%</span></td>
+                    <td class="py-3 px-4 text-right font-bold text-slate-800">${dSum.toLocaleString()}명</td>
+                    <td class="py-3 px-4 text-center font-bold text-indigo-600">${fVal ? fVal.toFixed(2) : '-'}</td>
                   </tr>
                 `;
               }).join('')}
@@ -963,9 +1002,7 @@
                 <th class="py-3 px-3 text-right bg-indigo-50 text-indigo-700">MAU 실적(통합)</th>
                 <th class="py-3 px-3 text-right bg-indigo-50">자사몰 MAU</th>
                 <th class="py-3 px-3 text-right bg-indigo-50">스토어 MAU</th>
-                <th class="py-3 px-3 text-center bg-slate-100 font-bold">방문 빈도(통합)</th>
-                <th class="py-3 px-3 text-center bg-slate-100">자사몰 빈도</th>
-                <th class="py-3 px-3 text-center bg-slate-100">스토어 빈도</th>
+                <th class="py-3 px-3 text-center bg-slate-100 font-bold">방문 빈도</th>
               </tr>
             </thead>
             <tbody class="divide-y font-mono">
@@ -982,8 +1019,6 @@
                     <td class="py-2.5 px-3 text-right bg-indigo-50/40 text-slate-600">${m ? m.actualMauMall.toLocaleString() : 0}명</td>
                     <td class="py-2.5 px-3 text-right bg-indigo-50/40 ${m && m.actualMauStore > 0 ? '' : 'text-slate-400'}">${m && m.actualMauStore > 0 ? m.actualMauStore.toLocaleString() + '명' : '-'}</td>
                     <td class="py-2.5 px-3 text-center font-bold text-indigo-600 bg-slate-100/50">${m ? m.freq.toFixed(2) : '-'}</td>
-                    <td class="py-2.5 px-3 text-center bg-slate-100/50 text-slate-600">${m ? m.freqMall.toFixed(2) : '-'}</td>
-                    <td class="py-2.5 px-3 text-center bg-slate-100/50 text-slate-600">${m && m.freqStore > 0 ? m.freqStore.toFixed(2) : '-'}</td>
                   </tr>
                 `;
               }).join('')}
@@ -991,138 +1026,280 @@
           `;
         }
 
+      // 3. 광고 효율 테이블 (통합 / 자사몰 / 스토어 / 브검)
       } else if (currentMainTab === 'group-ad') {
-        if (currentAdSubTab === 'ad-mall') {
-          table.innerHTML = `
-            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
-              <tr>
-                <th class="py-3 px-3">주차 일자</th>
-                <th class="py-3 px-3 text-right">광고비</th>
-                <th class="py-3 px-3 text-right">노출수</th>
-                <th class="py-3 px-3 text-right">클릭수</th>
-                <th class="py-3 px-3 text-right">클릭률 (CTR)</th>
-                <th class="py-3 px-3 text-right">전환율 (CVR)</th>
-                <th class="py-3 px-3 text-right">전환당 비용 (CPA)</th>
-                <th class="py-3 px-3 text-right">전환매출</th>
-                <th class="py-3 px-3 text-center">ROAS</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y font-mono">
-              ${activeWeeks.map(w => {
-                const a = w.adMall;
-                return `
+        const adLabel = currentAdSubTab === 'ad-total' ? '통합 광고 효율' : (currentAdSubTab === 'ad-mall' ? '자사몰' : (currentAdSubTab === 'ad-store' ? '스마트스토어' : '네이버 브랜드 검색'));
+        document.getElementById('tableTitle').textContent = `3. ${adLabel} 실적 테이블 (${isMonthMode ? '📊 월 누계' : '📅 주 단위'})`;
+        document.getElementById('tableDesc').textContent = `${adLabel}의 집행 광고비, 전환매출, ROAS, 노출, 클릭 및 CTR 분석`;
+
+        if (isMonthMode) {
+          // 월 누계 뷰
+          const monthlyAdList = activeMonths.map(m => getMonthlyAdData(m.key));
+
+          if (currentAdSubTab === 'ad-brandsearch') {
+            table.innerHTML = `
+              <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+                <tr>
+                  <th class="py-3 px-6">월 (누계)</th>
+                  <th class="py-3 px-6 text-right">브랜드검색 월 노출량</th>
+                  <th class="py-3 px-6 text-right">브랜드검색 월 클릭수</th>
+                  <th class="py-3 px-6 text-center">평균 클릭률 (CTR)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y font-mono">
+                ${monthlyAdList.map(item => `
                   <tr class="hover:bg-slate-50/70">
-                    <td class="py-2.5 px-3 font-semibold text-slate-800">${w.month} (${w.week})</td>
-                    <td class="py-2.5 px-3 text-right font-medium text-rose-600">${a ? a.spend.toLocaleString() : 0}원</td>
-                    <td class="py-2.5 px-3 text-right text-slate-500">${a ? a.impr.toLocaleString() : 0}</td>
-                    <td class="py-2.5 px-3 text-right font-medium">${a ? a.click.toLocaleString() : 0}</td>
-                    <td class="py-2.5 px-3 text-right">${a ? a.ctr.toFixed(1) : 0}%</td>
-                    <td class="py-2.5 px-3 text-right">${a ? a.cvr.toFixed(2) : 0}%</td>
-                    <td class="py-2.5 px-3 text-right">${a ? a.cpa.toLocaleString() : 0}원</td>
-                    <td class="py-2.5 px-3 text-right font-bold text-slate-900">${a ? a.convSales.toLocaleString() : 0}원</td>
-                    <td class="py-2.5 px-3 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold ${a && a.roas >= 250 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}">${a ? a.roas.toFixed(1) : 0}%</span></td>
+                    <td class="py-3 px-6 font-bold text-slate-900">${item.label} 누계</td>
+                    <td class="py-3 px-6 text-right font-medium text-slate-900">${item.bs.impr.toLocaleString()}</td>
+                    <td class="py-3 px-6 text-right font-bold text-emerald-600">${item.bs.click.toLocaleString()}</td>
+                    <td class="py-3 px-6 text-center font-bold text-sky-600">${item.bs.ctr.toFixed(1)}%</td>
                   </tr>
-                `;
-              }).join('')}
-            </tbody>
-          `;
-        } else if (currentAdSubTab === 'ad-store') {
-          table.innerHTML = `
-            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
-              <tr>
-                <th class="py-3 px-3">주차 일자</th>
-                <th class="py-3 px-3 text-right">광고비</th>
-                <th class="py-3 px-3 text-right">노출수</th>
-                <th class="py-3 px-3 text-right">클릭수</th>
-                <th class="py-3 px-3 text-right">클릭률 (CTR)</th>
-                <th class="py-3 px-3 text-right">전환율 (CVR)</th>
-                <th class="py-3 px-3 text-right">전환당 비용 (CPA)</th>
-                <th class="py-3 px-3 text-right">전환매출</th>
-                <th class="py-3 px-3 text-center">ROAS</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y font-mono">
-              ${activeWeeks.map(w => {
-                const s = w.adStore;
-                if (!s || s.spend === 0) {
+                `).join('')}
+              </tbody>
+            `;
+          } else {
+            table.innerHTML = `
+              <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+                <tr>
+                  <th class="py-3 px-3">월 (누계)</th>
+                  <th class="py-3 px-3 text-right">월간 광고비</th>
+                  <th class="py-3 px-3 text-right">월간 전환매출</th>
+                  <th class="py-3 px-3 text-center">월간 ROAS</th>
+                  <th class="py-3 px-3 text-right">월간 노출수</th>
+                  <th class="py-3 px-3 text-right">월간 클릭수</th>
+                  <th class="py-3 px-3 text-right">클릭률 (CTR)</th>
+                  <th class="py-3 px-3 text-right">전환율 (CVR)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y font-mono">
+                ${monthlyAdList.map(item => {
+                  const d = currentAdSubTab === 'ad-total' ? item.total : (currentAdSubTab === 'ad-mall' ? item.mall : item.store);
+                  if (currentAdSubTab === 'ad-store' && d.spend === 0) {
+                    return `
+                      <tr class="text-slate-400">
+                        <td class="py-3 px-3 font-semibold">${item.label} 누계</td>
+                        <td colspan="7" class="py-3 px-3 text-center text-xs italic">미집행 구간 (6월 이전)</td>
+                      </tr>
+                    `;
+                  }
                   return `
-                    <tr class="text-slate-400">
-                      <td class="py-2.5 px-3 font-semibold">${w.month} (${w.week})</td>
-                      <td colspan="8" class="py-2.5 px-3 text-center text-xs italic">미집행 구간 (6월 이전)</td>
+                    <tr class="hover:bg-slate-50/70">
+                      <td class="py-3 px-3 font-bold text-slate-900">${item.label} 누계</td>
+                      <td class="py-3 px-3 text-right font-bold text-rose-600">${d.spend.toLocaleString()}원</td>
+                      <td class="py-3 px-3 text-right font-black text-indigo-600">${d.convSales.toLocaleString()}원</td>
+                      <td class="py-3 px-3 text-center"><span class="inline-block px-2.5 py-0.5 rounded text-[11px] font-bold ${d.roas >= 250 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}">${d.roas.toFixed(1)}%</span></td>
+                      <td class="py-3 px-3 text-right text-slate-500">${d.impr.toLocaleString()}</td>
+                      <td class="py-3 px-3 text-right font-medium">${d.click.toLocaleString()}</td>
+                      <td class="py-3 px-3 text-right">${d.ctr.toFixed(2)}%</td>
+                      <td class="py-3 px-3 text-right">${d.cvr.toFixed(2)}%</td>
                     </tr>
                   `;
-                }
-                return `
-                  <tr class="hover:bg-slate-50/70">
-                    <td class="py-2.5 px-3 font-semibold text-slate-800">${w.month} (${w.week})</td>
-                    <td class="py-2.5 px-3 text-right font-medium text-emerald-600">${s.spend.toLocaleString()}원</td>
-                    <td class="py-2.5 px-3 text-right text-slate-500">${s.impr.toLocaleString()}</td>
-                    <td class="py-2.5 px-3 text-right font-medium">${s.click.toLocaleString()}</td>
-                    <td class="py-2.5 px-3 text-right">${s.ctr.toFixed(2)}%</td>
-                    <td class="py-2.5 px-3 text-right">${s.cvr.toFixed(2)}%</td>
-                    <td class="py-2.5 px-3 text-right">${s.cpa.toLocaleString()}원</td>
-                    <td class="py-2.5 px-3 text-right font-bold text-slate-900">${s.convSales.toLocaleString()}원</td>
-                    <td class="py-2.5 px-3 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold ${s.roas >= 300 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}">${s.roas}%</span></td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          `;
-        } else if (currentAdSubTab === 'ad-brandsearch') {
-          table.innerHTML = `
-            <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
-              <tr>
-                <th class="py-3 px-6">주차 일자</th>
-                <th class="py-3 px-6 text-right">브랜드검색 노출량</th>
-                <th class="py-3 px-6 text-right">브랜드검색 클릭수</th>
-                <th class="py-3 px-6 text-center">클릭률 (CTR)</th>
-                <th class="py-3 px-6 text-center">효율 진단</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y font-mono">
-              ${activeWeeks.map(w => {
-                const b = w.bs;
-                return `
-                  <tr class="hover:bg-slate-50/70">
-                    <td class="py-2.5 px-6 font-semibold text-slate-800">${w.month} (${w.week})</td>
-                    <td class="py-2.5 px-6 text-right font-medium text-slate-900">${b ? b.impr.toLocaleString() : 0}</td>
-                    <td class="py-2.5 px-6 text-right font-bold text-emerald-600">${b ? b.click.toLocaleString() : 0}</td>
-                    <td class="py-2.5 px-6 text-center font-bold text-sky-600">${b ? b.ctr.toFixed(1) : 0}%</td>
-                    <td class="py-2.5 px-6 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-medium ${b && b.ctr >= 30 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${b && b.ctr >= 30 ? '고반응' : '보통'}</span></td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          `;
+                }).join('')}
+              </tbody>
+            `;
+          }
+
+        } else {
+          // 주 단위 뷰
+          if (currentAdSubTab === 'ad-total') {
+            // [신규] 주 단위 통합 광고 효율 테이블
+            table.innerHTML = `
+              <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+                <tr>
+                  <th class="py-3 px-3">주차 일자</th>
+                  <th class="py-3 px-3 text-right bg-rose-50/50 text-rose-700">통합 광고비</th>
+                  <th class="py-3 px-3 text-right bg-indigo-50/50 text-indigo-700">통합 전환매출</th>
+                  <th class="py-3 px-3 text-center font-bold">통합 ROAS</th>
+                  <th class="py-3 px-3 text-right">총 노출수 (통합)</th>
+                  <th class="py-3 px-3 text-right">총 클릭수 (통합)</th>
+                  <th class="py-3 px-3 text-right">통합 CTR</th>
+                  <th class="py-3 px-3 text-right">자사몰 광고비</th>
+                  <th class="py-3 px-3 text-right">스토어 광고비</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y font-mono">
+                ${activeWeeks.map(w => {
+                  const mSpend = w.adMall ? w.adMall.spend : 0;
+                  const sSpend = w.adStore ? w.adStore.spend : 0;
+                  const totSpend = mSpend + sSpend;
+                  const totConv = (w.adMall ? w.adMall.convSales : 0) + (w.adStore ? w.adStore.convSales : 0);
+                  const totRoas = totSpend > 0 ? (totConv / totSpend) * 100 : 0;
+                  const totImpr = (w.adMall ? w.adMall.impr : 0) + (w.adStore ? w.adStore.impr : 0) + (w.bs ? w.bs.impr : 0);
+                  const totClick = (w.adMall ? w.adMall.click : 0) + (w.adStore ? w.adStore.click : 0) + (w.bs ? w.bs.click : 0);
+                  const totCtr = totImpr > 0 ? (totClick / totImpr) * 100 : 0;
+
+                  return `
+                    <tr class="hover:bg-slate-50/70">
+                      <td class="py-2.5 px-3 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                      <td class="py-2.5 px-3 text-right font-bold text-rose-600 bg-rose-50/20">${totSpend.toLocaleString()}원</td>
+                      <td class="py-2.5 px-3 text-right font-black text-indigo-600 bg-indigo-50/20">${totConv.toLocaleString()}원</td>
+                      <td class="py-2.5 px-3 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold ${totRoas >= 250 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}">${totRoas.toFixed(1)}%</span></td>
+                      <td class="py-2.5 px-3 text-right text-slate-500">${totImpr.toLocaleString()}</td>
+                      <td class="py-2.5 px-3 text-right font-medium">${totClick.toLocaleString()}</td>
+                      <td class="py-2.5 px-3 text-right">${totCtr.toFixed(2)}%</td>
+                      <td class="py-2.5 px-3 text-right text-slate-500">${mSpend.toLocaleString()}원</td>
+                      <td class="py-2.5 px-3 text-right text-slate-500">${sSpend > 0 ? sSpend.toLocaleString() + '원' : '-'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            `;
+          } else if (currentAdSubTab === 'ad-mall') {
+            table.innerHTML = `
+              <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+                <tr>
+                  <th class="py-3 px-3">주차 일자</th>
+                  <th class="py-3 px-3 text-right">광고비</th>
+                  <th class="py-3 px-3 text-right">노출수</th>
+                  <th class="py-3 px-3 text-right">클릭수</th>
+                  <th class="py-3 px-3 text-right">클릭률 (CTR)</th>
+                  <th class="py-3 px-3 text-right">전환율 (CVR)</th>
+                  <th class="py-3 px-3 text-right">전환당 비용 (CPA)</th>
+                  <th class="py-3 px-3 text-right">전환매출</th>
+                  <th class="py-3 px-3 text-center">ROAS</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y font-mono">
+                ${activeWeeks.map(w => {
+                  const a = w.adMall;
+                  return `
+                    <tr class="hover:bg-slate-50/70">
+                      <td class="py-2.5 px-3 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                      <td class="py-2.5 px-3 text-right font-medium text-rose-600">${a ? a.spend.toLocaleString() : 0}원</td>
+                      <td class="py-2.5 px-3 text-right text-slate-500">${a ? a.impr.toLocaleString() : 0}</td>
+                      <td class="py-2.5 px-3 text-right font-medium">${a ? a.click.toLocaleString() : 0}</td>
+                      <td class="py-2.5 px-3 text-right">${a ? a.ctr.toFixed(1) : 0}%</td>
+                      <td class="py-2.5 px-3 text-right">${a ? a.cvr.toFixed(2) : 0}%</td>
+                      <td class="py-2.5 px-3 text-right">${a ? a.cpa.toLocaleString() : 0}원</td>
+                      <td class="py-2.5 px-3 text-right font-bold text-slate-900">${a ? a.convSales.toLocaleString() : 0}원</td>
+                      <td class="py-2.5 px-3 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold ${a && a.roas >= 250 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}">${a ? a.roas.toFixed(1) : 0}%</span></td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            `;
+          } else if (currentAdSubTab === 'ad-store') {
+            table.innerHTML = `
+              <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+                <tr>
+                  <th class="py-3 px-3">주차 일자</th>
+                  <th class="py-3 px-3 text-right">광고비</th>
+                  <th class="py-3 px-3 text-right">노출수</th>
+                  <th class="py-3 px-3 text-right">클릭수</th>
+                  <th class="py-3 px-3 text-right">클릭률 (CTR)</th>
+                  <th class="py-3 px-3 text-right">전환율 (CVR)</th>
+                  <th class="py-3 px-3 text-right">전환당 비용 (CPA)</th>
+                  <th class="py-3 px-3 text-right">전환매출</th>
+                  <th class="py-3 px-3 text-center">ROAS</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y font-mono">
+                ${activeWeeks.map(w => {
+                  const s = w.adStore;
+                  if (!s || s.spend === 0) {
+                    return `
+                      <tr class="text-slate-400">
+                        <td class="py-2.5 px-3 font-semibold">${w.month} (${w.week})</td>
+                        <td colspan="8" class="py-2.5 px-3 text-center text-xs italic">미집행 구간 (6월 이전)</td>
+                      </tr>
+                    `;
+                  }
+                  return `
+                    <tr class="hover:bg-slate-50/70">
+                      <td class="py-2.5 px-3 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                      <td class="py-2.5 px-3 text-right font-medium text-emerald-600">${s.spend.toLocaleString()}원</td>
+                      <td class="py-2.5 px-3 text-right text-slate-500">${s.impr.toLocaleString()}</td>
+                      <td class="py-2.5 px-3 text-right font-medium">${s.click.toLocaleString()}</td>
+                      <td class="py-2.5 px-3 text-right">${s.ctr.toFixed(2)}%</td>
+                      <td class="py-2.5 px-3 text-right">${s.cvr.toFixed(2)}%</td>
+                      <td class="py-2.5 px-3 text-right">${s.cpa.toLocaleString()}원</td>
+                      <td class="py-2.5 px-3 text-right font-bold text-slate-900">${s.convSales.toLocaleString()}원</td>
+                      <td class="py-2.5 px-3 text-center"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold ${s.roas >= 300 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}">${s.roas}%</span></td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            `;
+          } else if (currentAdSubTab === 'ad-brandsearch') {
+            table.innerHTML = `
+              <thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 border-b">
+                <tr>
+                  <th class="py-3 px-6">주차 일자</th>
+                  <th class="py-3 px-6 text-right">브랜드검색 노출량</th>
+                  <th class="py-3 px-6 text-right">브랜드검색 클릭수</th>
+                  <th class="py-3 px-6 text-center">클릭률 (CTR)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y font-mono">
+                ${activeWeeks.map(w => {
+                  const b = w.bs;
+                  return `
+                    <tr class="hover:bg-slate-50/70">
+                      <td class="py-2.5 px-6 font-semibold text-slate-800">${w.month} (${w.week})</td>
+                      <td class="py-2.5 px-6 text-right font-medium text-slate-900">${b ? b.impr.toLocaleString() : 0}</td>
+                      <td class="py-2.5 px-6 text-right font-bold text-emerald-600">${b ? b.click.toLocaleString() : 0}</td>
+                      <td class="py-2.5 px-6 text-center font-bold text-sky-600">${b ? b.ctr.toFixed(1) : 0}%</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            `;
+          }
         }
       }
     }
 
     // -------------------------------------------------------------
-    // 6. 차트 렌더링
+    // 차트 렌더링 (주 단위 / 월 누계 완벽 대응)
     // -------------------------------------------------------------
-    function renderCharts(activeWeeks) {
+    function renderCharts(activeWeeks, activeMonths) {
       if (!window.Chart) return;
-      const labels = activeWeeks.map(w => `${w.month.replace('2026-', '')}월 ${w.week}`);
+      const isMonthMode = (currentViewMode === 'month');
       const chanText = currentChannel === 'mall' ? '자사몰' : (currentChannel === 'store' ? '스마트스토어' : '전체 채널');
+      const labels = isMonthMode 
+        ? activeMonths.map(m => m.label) 
+        : activeWeeks.map(w => `${w.month.replace('2026-', '')}월 ${w.week}`);
 
+      // 1. 매출 탭 차트
       if (currentMainTab === 'group-revenue') {
         document.getElementById('chartContainerRevenue').classList.remove('hidden');
         document.getElementById('chartContainerSingle').classList.add('hidden');
-        document.getElementById('chartRevChannelBadge').textContent = chanText;
-        document.getElementById('chartOrdersChannelBadge').textContent = chanText;
+        document.getElementById('chartRevChannelBadge').textContent = `${chanText} (${isMonthMode ? '월 누계' : '주간'})`;
+        document.getElementById('chartOrdersChannelBadge').textContent = `${chanText} (${isMonthMode ? '월 누계' : '주간'})`;
+        document.getElementById('chartRevTitle').textContent = isMonthMode ? `월별 채널 매출 (목표 대비 실적 누계)` : `주차별 채널 매출 (자사몰 매출 vs 스마트스토어 매출)`;
+        document.getElementById('chartOrdersTitle').textContent = isMonthMode ? `월별 주문 건수 & 평균 객단가 (AOV)` : `주차별 주문 건수 & 평균 객단가 (구매 건수와 AOV)`;
 
-        // 그래프 1: 매출
+        // 그래프 1: 매출 데이터셋
         let revDatasets = [];
-        if (currentChannel === 'mall') {
-          revDatasets = [{ label: '자사몰 매출', data: activeWeeks.map(w => w.revMall), backgroundColor: 'rgba(99, 102, 241, 0.85)', borderRadius: 4 }];
-        } else if (currentChannel === 'store') {
-          revDatasets = [{ label: '스마트스토어 매출', data: activeWeeks.map(w => w.revStore), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4 }];
+        if (isMonthMode) {
+          if (currentChannel === 'mall') {
+            revDatasets = [
+              { label: '자사몰 실적 매출', data: activeMonths.map(m => m.actualRevMall), backgroundColor: 'rgba(99, 102, 241, 0.85)', borderRadius: 4 },
+              { label: '자사몰 목표 매출', data: activeMonths.map(m => m.targetRevMall), type: 'line', borderColor: '#f43f5e', borderDash: [4, 4], borderWidth: 2, pointRadius: 4 }
+            ];
+          } else if (currentChannel === 'store') {
+            revDatasets = [
+              { label: '스토어 실적 매출', data: activeMonths.map(m => m.actualRevStore), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4 },
+              { label: '스토어 목표 매출', data: activeMonths.map(m => m.targetRevStore), type: 'line', borderColor: '#f59e0b', borderDash: [4, 4], borderWidth: 2, pointRadius: 4 }
+            ];
+          } else {
+            revDatasets = [
+              { label: '자사몰 매출', data: activeMonths.map(m => m.actualRevMall), backgroundColor: 'rgba(99, 102, 241, 0.85)', borderRadius: 4, stack: 'rev' },
+              { label: '스마트스토어 매출', data: activeMonths.map(m => m.actualRevStore), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4, stack: 'rev' },
+              { label: '통합 목표 매출', data: activeMonths.map(m => m.targetRev), type: 'line', borderColor: '#e11d48', borderWidth: 2, pointRadius: 4 }
+            ];
+          }
         } else {
-          revDatasets = [
-            { label: '자사몰 매출', data: activeWeeks.map(w => w.revMall), backgroundColor: 'rgba(99, 102, 241, 0.85)', borderRadius: 4 },
-            { label: '스마트스토어 매출', data: activeWeeks.map(w => w.revStore), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4 }
-          ];
+          if (currentChannel === 'mall') {
+            revDatasets = [{ label: '자사몰 매출', data: activeWeeks.map(w => w.revMall), backgroundColor: 'rgba(99, 102, 241, 0.85)', borderRadius: 4 }];
+          } else if (currentChannel === 'store') {
+            revDatasets = [{ label: '스마트스토어 매출', data: activeWeeks.map(w => w.revStore), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4 }];
+          } else {
+            revDatasets = [
+              { label: '자사몰 매출', data: activeWeeks.map(w => w.revMall), backgroundColor: 'rgba(99, 102, 241, 0.85)', borderRadius: 4 },
+              { label: '스마트스토어 매출', data: activeWeeks.map(w => w.revStore), backgroundColor: 'rgba(16, 185, 129, 0.85)', borderRadius: 4 }
+            ];
+          }
         }
 
         const ctx1 = document.getElementById('chartRevenueChannels');
@@ -1141,9 +1318,13 @@
           });
         }
 
-        // 그래프 2: 주문건수와 AOV
-        const ordersData = activeWeeks.map(w => (currentChannel === 'mall' ? w.ordersMall : (currentChannel === 'store' ? w.ordersStore : w.ordersTotal)));
-        const aovData = activeWeeks.map(w => (currentChannel === 'mall' ? w.aovMall : (currentChannel === 'store' ? w.aovStore : w.aovTotal)));
+        // 그래프 2: 주문건수 및 AOV
+        const ordersData = isMonthMode 
+          ? activeMonths.map(m => (currentChannel === 'mall' ? m.actualOrdersMall : (currentChannel === 'store' ? m.actualOrdersStore : m.actualOrders)))
+          : activeWeeks.map(w => (currentChannel === 'mall' ? w.ordersMall : (currentChannel === 'store' ? w.ordersStore : w.ordersTotal)));
+        const aovData = isMonthMode
+          ? activeMonths.map(m => (currentChannel === 'mall' ? m.actualAovMall : (currentChannel === 'store' ? m.actualAovStore : m.actualAov)))
+          : activeWeeks.map(w => (currentChannel === 'mall' ? w.aovMall : (currentChannel === 'store' ? w.aovStore : w.aovTotal)));
 
         const ctx2 = document.getElementById('chartRevenueOrdersAov');
         if (ctx2) {
@@ -1169,9 +1350,10 @@
         }
 
       } else {
+        // 단일 차트 (유입 및 광고 효율)
         document.getElementById('chartContainerRevenue').classList.add('hidden');
         document.getElementById('chartContainerSingle').classList.remove('hidden');
-        document.getElementById('singleChartChannelBadge').textContent = chanText;
+        document.getElementById('singleChartChannelBadge').textContent = `${chanText} (${isMonthMode ? '월 누계' : '주간'})`;
 
         const ctxSingle = document.getElementById('singleChartCanvas');
         if (!ctxSingle) return;
@@ -1182,37 +1364,115 @@
         let singleY1Callback = null;
 
         if (currentMainTab === 'group-traffic') {
-          document.getElementById('singleChartTitle').textContent = `2. 주간 DAU 유입 트렌드 (${chanText})`;
-          document.getElementById('singleChartDesc').textContent = '주차별 일일 활성 사용자 합산(sum DAU) 추이';
-          const dauData = activeWeeks.map(w => (currentChannel === 'mall' ? w.dauMall : (currentChannel === 'store' ? w.dauStore : w.dauTotal)));
-          singleDatasets = [{ type: 'bar', label: `${chanText} 주간 sum DAU`, data: dauData, backgroundColor: 'rgba(14, 165, 233, 0.75)', borderRadius: 4 }];
-          singleYCallback = (v) => `${v.toLocaleString()}명`;
+          if (isMonthMode) {
+            document.getElementById('singleChartTitle').textContent = `2. 월별 MAU 유입 트렌드 & 방문 빈도 (${chanText})`;
+            document.getElementById('singleChartDesc').textContent = '월별 목표 MAU 대비 실적 MAU(막대) 및 월간 방문 빈도(Frequency, 꺾은선)';
+            const mauData = activeMonths.map(m => (currentChannel === 'mall' ? m.actualMauMall : (currentChannel === 'store' ? m.actualMauStore : m.actualMau)));
+            const mauTgt = activeMonths.map(m => (currentChannel === 'mall' ? m.targetMauMall : (currentChannel === 'store' ? m.targetMauStore : m.targetMau)));
+            const freqData = activeMonths.map(m => (currentChannel === 'mall' ? m.freqMall : (currentChannel === 'store' ? m.freqStore : m.freq)));
+
+            singleDatasets = [
+              { type: 'bar', label: '실적 MAU', data: mauData, backgroundColor: 'rgba(14, 165, 233, 0.75)', yAxisID: 'y', borderRadius: 4 },
+              { type: 'line', label: '목표 MAU', data: mauTgt, borderColor: '#f43f5e', borderDash: [4, 4], borderWidth: 2, yAxisID: 'y', pointRadius: 3 },
+              { type: 'line', label: '방문 빈도', data: freqData, borderColor: '#6366f1', borderWidth: 2.5, yAxisID: 'y1', pointRadius: 4 }
+            ];
+            singleYCallback = (v) => `${v.toLocaleString()}명`;
+            singleY1Callback = (v) => `${v.toFixed(2)}`;
+          } else {
+            document.getElementById('singleChartTitle').textContent = `2. 주간 DAU 유입 트렌드 (${chanText})`;
+            document.getElementById('singleChartDesc').textContent = '주차별 일일 활성 사용자 합산(sum DAU) 추이';
+            const dauData = activeWeeks.map(w => (currentChannel === 'mall' ? w.dauMall : (currentChannel === 'store' ? w.dauStore : w.dauTotal)));
+            singleDatasets = [{ type: 'bar', label: `${chanText} 주간 sum DAU`, data: dauData, backgroundColor: 'rgba(14, 165, 233, 0.75)', borderRadius: 4 }];
+            singleYCallback = (v) => `${v.toLocaleString()}명`;
+          }
 
         } else if (currentMainTab === 'group-ad') {
-          if (currentAdSubTab === 'ad-mall') {
-            document.getElementById('singleChartTitle').textContent = '3-1. 자사몰 광고 효율 (광고비 vs ROAS)';
-            singleDatasets = [
-              { type: 'bar', label: '자사몰 광고비', data: activeWeeks.map(w => w.adMall ? w.adMall.spend : 0), backgroundColor: 'rgba(239, 68, 68, 0.7)', yAxisID: 'y', borderRadius: 4 },
-              { type: 'line', label: 'ROAS (%)', data: activeWeeks.map(w => w.adMall ? w.adMall.roas : 0), borderColor: '#f59e0b', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
-            ];
-            singleYCallback = (v) => formatWon(v);
-            singleY1Callback = (v) => `${v}%`;
-          } else if (currentAdSubTab === 'ad-store') {
-            document.getElementById('singleChartTitle').textContent = '3-2. 스마트스토어 광고 효율 (광고비 vs ROAS)';
-            singleDatasets = [
-              { type: 'bar', label: '스토어 광고비', data: activeWeeks.map(w => w.adStore ? w.adStore.spend : 0), backgroundColor: 'rgba(16, 185, 129, 0.7)', yAxisID: 'y', borderRadius: 4 },
-              { type: 'line', label: '스토어 ROAS (%)', data: activeWeeks.map(w => w.adStore ? w.adStore.roas : 0), borderColor: '#6366f1', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
-            ];
-            singleYCallback = (v) => formatWon(v);
-            singleY1Callback = (v) => `${v}%`;
-          } else if (currentAdSubTab === 'ad-brandsearch') {
-            document.getElementById('singleChartTitle').textContent = '3-3. 네이버 브랜드 검색 (노출량 vs CTR)';
-            singleDatasets = [
-              { type: 'bar', label: '노출량', data: activeWeeks.map(w => w.bs ? w.bs.impr : 0), backgroundColor: 'rgba(3, 199, 90, 0.75)', yAxisID: 'y', borderRadius: 4 },
-              { type: 'line', label: '클릭률 (CTR, %)', data: activeWeeks.map(w => w.bs ? w.bs.ctr : 0), borderColor: '#0284c7', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
-            ];
-            singleYCallback = (v) => `${v.toLocaleString()}`;
-            singleY1Callback = (v) => `${v}%`;
+          if (isMonthMode) {
+            // 월 누계 광고 효율 차트
+            const monthlyAdList = activeMonths.map(m => getMonthlyAdData(m.key));
+
+            if (currentAdSubTab === 'ad-total') {
+              document.getElementById('singleChartTitle').textContent = '3. 통합 월별 광고 효율 (총 광고비 vs 통합 ROAS)';
+              singleDatasets = [
+                { type: 'bar', label: '통합 총 광고비', data: monthlyAdList.map(item => item.total.spend), backgroundColor: 'rgba(99, 102, 241, 0.75)', yAxisID: 'y', borderRadius: 4 },
+                { type: 'line', label: '통합 ROAS (%)', data: monthlyAdList.map(item => item.total.roas), borderColor: '#f59e0b', borderWidth: 2.5, yAxisID: 'y1', pointRadius: 4 }
+              ];
+              singleYCallback = (v) => formatWon(v);
+              singleY1Callback = (v) => `${v.toFixed(0)}%`;
+
+            } else if (currentAdSubTab === 'ad-mall') {
+              document.getElementById('singleChartTitle').textContent = '3-1. 자사몰 월별 광고 효율 (광고비 vs ROAS)';
+              singleDatasets = [
+                { type: 'bar', label: '자사몰 월 광고비', data: monthlyAdList.map(item => item.mall.spend), backgroundColor: 'rgba(239, 68, 68, 0.7)', yAxisID: 'y', borderRadius: 4 },
+                { type: 'line', label: 'ROAS (%)', data: monthlyAdList.map(item => item.mall.roas), borderColor: '#f59e0b', borderWidth: 2.5, yAxisID: 'y1', pointRadius: 4 }
+              ];
+              singleYCallback = (v) => formatWon(v);
+              singleY1Callback = (v) => `${v.toFixed(0)}%`;
+
+            } else if (currentAdSubTab === 'ad-store') {
+              document.getElementById('singleChartTitle').textContent = '3-2. 스마트스토어 월별 광고 효율 (광고비 vs ROAS)';
+              singleDatasets = [
+                { type: 'bar', label: '스토어 월 광고비', data: monthlyAdList.map(item => item.store.spend), backgroundColor: 'rgba(16, 185, 129, 0.7)', yAxisID: 'y', borderRadius: 4 },
+                { type: 'line', label: '스토어 ROAS (%)', data: monthlyAdList.map(item => item.store.roas), borderColor: '#6366f1', borderWidth: 2.5, yAxisID: 'y1', pointRadius: 4 }
+              ];
+              singleYCallback = (v) => formatWon(v);
+              singleY1Callback = (v) => `${v.toFixed(0)}%`;
+
+            } else if (currentAdSubTab === 'ad-brandsearch') {
+              document.getElementById('singleChartTitle').textContent = '3-3. 네이버 브랜드 검색 월별 트렌드 (노출량 vs CTR)';
+              singleDatasets = [
+                { type: 'bar', label: '월 노출량', data: monthlyAdList.map(item => item.bs.impr), backgroundColor: 'rgba(3, 199, 90, 0.75)', yAxisID: 'y', borderRadius: 4 },
+                { type: 'line', label: '월 평균 CTR (%)', data: monthlyAdList.map(item => item.bs.ctr), borderColor: '#0284c7', borderWidth: 2.5, yAxisID: 'y1', pointRadius: 4 }
+              ];
+              singleYCallback = (v) => `${v.toLocaleString()}`;
+              singleY1Callback = (v) => `${v.toFixed(1)}%`;
+            }
+
+          } else {
+            // 주 단위 광고 효율 차트
+            if (currentAdSubTab === 'ad-total') {
+              document.getElementById('singleChartTitle').textContent = '3. 주간 통합 광고 효율 (총 광고비 vs 통합 ROAS)';
+              const totSpends = activeWeeks.map(w => (w.adMall ? w.adMall.spend : 0) + (w.adStore ? w.adStore.spend : 0));
+              const totRoass = activeWeeks.map(w => {
+                const sp = (w.adMall ? w.adMall.spend : 0) + (w.adStore ? w.adStore.spend : 0);
+                const cv = (w.adMall ? w.adMall.convSales : 0) + (w.adStore ? w.adStore.convSales : 0);
+                return sp > 0 ? (cv / sp) * 100 : 0;
+              });
+
+              singleDatasets = [
+                { type: 'bar', label: '통합 총 광고비', data: totSpends, backgroundColor: 'rgba(99, 102, 241, 0.75)', yAxisID: 'y', borderRadius: 4 },
+                { type: 'line', label: '통합 ROAS (%)', data: totRoass, borderColor: '#f59e0b', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
+              ];
+              singleYCallback = (v) => formatWon(v);
+              singleY1Callback = (v) => `${v.toFixed(0)}%`;
+
+            } else if (currentAdSubTab === 'ad-mall') {
+              document.getElementById('singleChartTitle').textContent = '3-1. 자사몰 광고 효율 (광고비 vs ROAS)';
+              singleDatasets = [
+                { type: 'bar', label: '자사몰 광고비', data: activeWeeks.map(w => w.adMall ? w.adMall.spend : 0), backgroundColor: 'rgba(239, 68, 68, 0.7)', yAxisID: 'y', borderRadius: 4 },
+                { type: 'line', label: 'ROAS (%)', data: activeWeeks.map(w => w.adMall ? w.adMall.roas : 0), borderColor: '#f59e0b', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
+              ];
+              singleYCallback = (v) => formatWon(v);
+              singleY1Callback = (v) => `${v}%`;
+
+            } else if (currentAdSubTab === 'ad-store') {
+              document.getElementById('singleChartTitle').textContent = '3-2. 스마트스토어 광고 효율 (광고비 vs ROAS)';
+              singleDatasets = [
+                { type: 'bar', label: '스토어 광고비', data: activeWeeks.map(w => w.adStore ? w.adStore.spend : 0), backgroundColor: 'rgba(16, 185, 129, 0.7)', yAxisID: 'y', borderRadius: 4 },
+                { type: 'line', label: '스토어 ROAS (%)', data: activeWeeks.map(w => w.adStore ? w.adStore.roas : 0), borderColor: '#6366f1', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
+              ];
+              singleYCallback = (v) => formatWon(v);
+              singleY1Callback = (v) => `${v}%`;
+
+            } else if (currentAdSubTab === 'ad-brandsearch') {
+              document.getElementById('singleChartTitle').textContent = '3-3. 네이버 브랜드 검색 (노출량 vs CTR)';
+              singleDatasets = [
+                { type: 'bar', label: '노출량', data: activeWeeks.map(w => w.bs ? w.bs.impr : 0), backgroundColor: 'rgba(3, 199, 90, 0.75)', yAxisID: 'y', borderRadius: 4 },
+                { type: 'line', label: '클릭률 (CTR, %)', data: activeWeeks.map(w => w.bs ? w.bs.ctr : 0), borderColor: '#0284c7', borderWidth: 2, yAxisID: 'y1', pointRadius: 3 }
+              ];
+              singleYCallback = (v) => `${v.toLocaleString()}`;
+              singleY1Callback = (v) => `${v}%`;
+            }
           }
         }
 
@@ -1233,23 +1493,42 @@
     }
 
     // -------------------------------------------------------------
-    // 7. 마스터 렌더 함수
+    // 마스터 렌더 함수
     // -------------------------------------------------------------
     function renderDashboard() {
       updateTopSummary();
+      const activeMonths = (currentMonth === 'all') ? monthsData : monthsData.filter(m => m.key === currentMonth);
       const activeWeeks = (currentMonth === 'all') ? weeks : weeks.filter(w => w.month === currentMonth);
+
       if (currentMainTab === 'group-ad') {
         document.getElementById('adSubTabContainer').classList.remove('hidden');
       } else {
         document.getElementById('adSubTabContainer').classList.add('hidden');
       }
-      renderCharts(activeWeeks);
-      renderTables(activeWeeks);
+
+      renderCharts(activeWeeks, activeMonths);
+      renderTables(activeWeeks, activeMonths);
     }
 
     // -------------------------------------------------------------
-    // 8. 인터랙션 이벤트 핸들러
+    // 인터랙션 이벤트 핸들러
     // -------------------------------------------------------------
+    // [신규] 보기 모드 (주 단위 vs 월 누계) 토글
+    function setViewMode(mode) {
+      currentViewMode = mode;
+      const btnWeek = document.getElementById('btn-view-week');
+      const btnMonth = document.getElementById('btn-view-month');
+
+      if (mode === 'week') {
+        btnWeek.className = 'px-2.5 py-1.5 rounded-md bg-white text-indigo-700 shadow-xs transition flex items-center gap-1 font-bold';
+        btnMonth.className = 'px-2.5 py-1.5 rounded-md text-slate-500 hover:text-slate-800 transition flex items-center gap-1 font-semibold';
+      } else {
+        btnMonth.className = 'px-2.5 py-1.5 rounded-md bg-white text-indigo-700 shadow-xs transition flex items-center gap-1 font-bold';
+        btnWeek.className = 'px-2.5 py-1.5 rounded-md text-slate-500 hover:text-slate-800 transition flex items-center gap-1 font-semibold';
+      }
+      renderDashboard();
+    }
+
     function setChannelFilter(channel) {
       currentChannel = channel;
       ['total', 'mall', 'store'].forEach(c => {
@@ -1262,6 +1541,7 @@
       });
       if (currentChannel === 'mall') switchAdSubTab('ad-mall', false);
       else if (currentChannel === 'store') switchAdSubTab('ad-store', false);
+      else switchAdSubTab('ad-total', false);
       renderDashboard();
     }
 
@@ -1296,13 +1576,10 @@
       renderDashboard();
     }
 
-    // -------------------------------------------------------------
-    // 초기 로딩 및 1분 주기 자동 백그라운드 재동기화
-    // -------------------------------------------------------------
+    // 초기 실행 및 60초 자동 갱신
     window.addEventListener('DOMContentLoaded', () => {
       renderDashboard();
       fetchLiveGoogleSheet(false);
-      // 1분(60초)마다 시트 데이터 자동 동기화
       setInterval(() => fetchLiveGoogleSheet(false), 60000);
     });
   </script>
